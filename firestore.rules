@@ -5,26 +5,29 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function admin() {
-      return signedIn() && request.auth.token.email != null;
+    // Pengurus/admin harus terdaftar sebagai dokumen pengurus dengan ID = UID Firebase.
+    function isPengurus() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/pengurus/$(request.auth.uid));
     }
 
-    // Public transparency: residents can read financial and resident information.
-    // Writes require an authenticated email/password account.
+    // Data transparansi dapat dibaca oleh pengguna yang sudah terautentikasi melalui Phone Authentication.
+    // Perubahan data hanya boleh dilakukan oleh UID pengurus yang terdaftar.
     match /transaksi/{id} {
-      allow read: if true;
-      allow create, update, delete: if admin();
+      allow read: if signedIn();
+      allow create, update, delete: if isPengurus();
     }
 
     match /warga/{id} {
-      allow read: if true;
-      allow create, update, delete: if admin();
+      allow read: if signedIn();
+      allow create, update, delete: if isPengurus();
     }
 
-    // Only basic public profile information is stored here. Never store passwords.
-    match /pengurus/{id} {
-      allow read: if true;
-      allow create, update, delete: if admin();
+    // Profil pengurus tidak boleh dibuka publik. Pengurus dapat membaca profilnya
+    // dan profil pengurus lain setelah terautentikasi; perubahan hanya oleh pengurus.
+    match /pengurus/{uid} {
+      allow read: if signedIn();
+      allow create, update, delete: if isPengurus();
     }
 
     match /{document=**} {

@@ -72,37 +72,42 @@
                 </button>
             </div>
 
-            <!-- Form Warga View -->
+            <!-- Akses Warga tanpa login -->
             <div id="loginFormWarga" class="space-y-4">
                 <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-xs text-blue-800 space-y-1.5">
-                    <p class="font-bold flex items-center"><i class="fa-solid fa-circle-info mr-1.5 text-blue-600"></i> Mode Transparan Warga</p>
-                    <p>Warga dapat melihat laporan kas, total saldo, info QRIS, dan status iuran secara transparan tanpa perlu password.</p>
+                    <p class="font-bold flex items-center"><i class="fa-solid fa-eye mr-1.5 text-blue-600"></i> Akses Laporan Warga</p>
+                    <p>Warga tidak perlu login. Silakan langsung masuk untuk melihat saldo kas, transaksi, dan status iuran secara transparan.</p>
                 </div>
-                <button type="button" onclick="app.loginAsWarga()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl text-sm transition shadow-lg shadow-indigo-600/20 flex items-center justify-center space-x-2">
-                    <span>Masuk ke Laporan Warga</span>
-                    <i class="fa-solid fa-arrow-right"></i>
+                <button type="button" onclick="app.enterAsWarga()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl text-sm transition shadow-lg shadow-indigo-600/20 flex items-center justify-center space-x-2">
+                    <span>Masuk sebagai Warga</span><i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
 
-            <!-- Form Pengurus / Admin Login -->
-            <form id="loginFormPengurus" onsubmit="app.loginAsPengurus(event)" class="space-y-4 hidden">
+            <!-- Login Pengurus via Nomor HP + OTP -->
+            <div id="loginFormPengurus" class="space-y-4 hidden">
                 <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-800 space-y-1.5">
-                    <p class="font-bold flex items-center"><i class="fa-solid fa-shield-halved mr-1.5 text-amber-600"></i> Login Akun Pengurus RT</p>
-                    <p>Gunakan email dan password Firebase Authentication. Password tidak disimpan di Firestore.</p>
+                    <p class="font-bold flex items-center"><i class="fa-solid fa-shield-halved mr-1.5 text-amber-600"></i> Login Pengurus RT</p>
+                    <p>Gunakan nomor HP yang sudah terdaftar sebagai Pengurus. Verifikasi dilakukan dengan kode OTP SMS.</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Email Pengurus</label>
-                    <input type="email" id="inputEmailPengurus" placeholder="pengurus@contoh.com" autocomplete="username" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3" required>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nomor HP Pengurus</label>
+                    <input type="tel" id="inputPhonePengurus" placeholder="08xxxxxxxxxx" inputmode="tel" autocomplete="tel" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block w-full p-3" required>
+                    <p class="text-[10px] text-slate-400 mt-1">Nomor harus sudah terdaftar di data Pengurus Firebase.</p>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
-                    <input type="password" id="inputPasswordPengurus" placeholder="Masukkan password pengurus" autocomplete="current-password" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3" required>
+                <div id="otpPengurusWrap" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kode OTP</label>
+                    <input type="text" id="inputOtpPengurus" placeholder="6 digit kode SMS" inputmode="numeric" autocomplete="one-time-code" maxlength="6" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl tracking-[0.35em] text-center focus:ring-emerald-500 focus:border-emerald-500 block w-full p-3">
                 </div>
-                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl text-sm transition shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-2">
-                    <span>Login Pengurus RT</span>
-                    <i class="fa-solid fa-lock-open"></i>
+                <button type="button" id="btnPhonePengurus" onclick="app.sendPhoneOtp('pengurus')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl text-sm transition shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-2">
+                    <span>Kirim Kode OTP</span><i class="fa-solid fa-message"></i>
                 </button>
-            </form>
+                <button type="button" id="btnVerifyPengurus" onclick="app.verifyPhoneOtp('pengurus')" class="hidden w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl text-sm transition shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-2">
+                    <span>Verifikasi & Masuk Pengurus</span><i class="fa-solid fa-lock-open"></i>
+                </button>
+            </div>
+
+            <div id="recaptcha-container"></div>
+            <div id="loginStatus" class="hidden text-center text-xs rounded-xl px-3 py-2"></div>
 
             <div class="text-center pt-2">
                 <p class="text-[11px] text-slate-400">&copy; 2026 Grand Riscon Rancaekek</p>
@@ -478,57 +483,7 @@
             </form>
         </div>
     </div>
-
-    <!-- Modal Tambah Akun Pengurus Baru -->
-    <div id="akunModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100">
-            <div class="bg-amber-600 text-white px-5 py-3.5 flex items-center justify-between">
-                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
-                    <i class="fa-solid fa-user-plus mr-2"></i> Tambah Akun Pengurus RT
-                </h3>
-                <button type="button" onclick="app.closeModal('akunModal')" class="text-amber-200 hover:text-white transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-            <form id="formTambahAkun" onsubmit="app.saveAkunPengurus(event)" class="p-4 sm:p-6 space-y-4">
-                <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-xs text-amber-900">
-                    <p class="font-bold mb-1">Buat Akses Login Pengurus</p>
-                    <p>Buat akun login pengurus melalui Firebase Authentication, lalu gunakan form ini untuk profil pengurus.</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Pengurus & Jabatan</label>
-                    <input type="text" id="akunNamaBaru" placeholder="Contoh: Bpk. Syaiful (Bendahara)" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg block w-full p-2.5" required>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Email Login Firebase</label>
-                    <input type="email" id="akunEmailBaru" placeholder="pengurus@contoh.com" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg block w-full p-2.5" required>
-                </div>
-                <div class="flex items-center justify-end space-x-3 pt-2">
-                    <button type="button" onclick="app.closeModal('akunModal')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2 rounded-lg text-xs sm:text-sm transition">Batal</button>
-                    <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-medium px-5 py-2 rounded-lg text-xs sm:text-sm transition">Simpan Akun</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Custom Modal Konfirmasi / Pesan -->
-    <div id="customAlertModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-slate-100 p-6 text-center space-y-4">
-            <div id="alertIconContainer" class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl">
-                <i id="alertIcon" class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <div>
-                <h4 id="alertTitle" class="font-bold text-slate-800 text-base sm:text-lg">Konfirmasi</h4>
-                <p id="alertMessage" class="text-xs sm:text-sm text-slate-500 mt-1">Apakah Anda yakin ingin melakukan tindakan ini?</p>
-            </div>
-            <div id="alertButtons" class="flex space-x-3 pt-2">
-                <button type="button" id="alertCancelBtn" onclick="app.closeCustomAlert()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 rounded-lg text-xs sm:text-sm transition">Batal</button>
-                <button type="button" id="alertConfirmBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-xs sm:text-sm transition">Ya, Lanjutkan</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
+<!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-5 text-center text-[11px] sm:text-xs text-slate-500 mt-auto px-4">
         <p>&copy; 2026 Kas Warga Blok P RT. 011 / RW. 013 Grand Riscon Rancaekek. Transparansi Keuangan Warga.</p>
     </footer>
@@ -570,8 +525,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+        import { getAuth, signInWithPhoneNumber, RecaptchaVerifier, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
         import { firebaseConfig, APP_ID } from "./firebase-config.js";
 
         class KasRTApp {
@@ -583,6 +538,10 @@
                 this.auth = null;
                 this.appId = APP_ID;
                 this.cloudSyncStarted = false;
+                this.confirmationResult = null;
+                this.pendingPhone = '';
+                this.pendingLoginMode = '';
+                this.recaptchaVerifier = null;
                 
                 this.role = localStorage.getItem('rt_user_role') || null;
                 this.pengurusName = localStorage.getItem('rt_pengurus_name') || '';
@@ -602,20 +561,17 @@
                     this.db = getFirestore(app);
                     this.auth = getAuth(app);
 
-                    onAuthStateChanged(this.auth, (user) => {
-                        if (user && user.email) {
-                            this.role = 'pengurus';
-                            this.pengurusName = user.email;
-                            localStorage.setItem('rt_user_role', 'pengurus');
-                            localStorage.setItem('rt_pengurus_name', user.email);
-                        }
-                        this.initCloudSync();
-                    });
+                    // Data publik (saldo, transaksi, warga) tetap disinkronkan tanpa login.
+                    // Hak tulis tetap dikendalikan oleh Firestore Security Rules.
+                    this.initCloudSync();
 
-                    // Public resident mode uses an anonymous Firebase session for secure Firestore rules.
-                    if (!this.auth.currentUser) {
-                        await signInAnonymously(this.auth);
-                    }
+                    onAuthStateChanged(this.auth, (user) => {
+                        if (user && this.role !== 'pengurus') {
+                            // Jika ada sesi Pengurus yang masih aktif, jangan otomatis menjadikan
+                            // pengunjung sebagai Pengurus; role hanya diberikan setelah OTP + whitelist.
+                            signOut(this.auth).catch(() => {});
+                        }
+                    });
                 } catch (e) {
                     console.error('Firebase init error:', e);
                     this.loadDummyData();
@@ -708,13 +664,8 @@
                     { id: 'w3', noRumah: 'Blok P3 / 18', nama: 'Bpk. Hendra Gunawan', telepon: '081122334455', status: 'Belum Lunas' }
                 ];
                 if (savedWarga) this.warga = JSON.parse(savedWarga);
-                this.pengurusList = savedPengurus ? JSON.parse(savedPengurus) : [
-                    { id: 'p1', nama: 'Ketua RT 011 (Bpk. Rudi)', email: 'ketua@kaswargablokp.local' },
-                    { id: 'p2', nama: 'Bendahara Blok P (Ibu Rina)', email: 'bendahara@kaswargablokp.local' }
-                ];
+                this.pengurusList = savedPengurus ? JSON.parse(savedPengurus) : [];
                 if (savedPengurus) this.pengurusList = JSON.parse(savedPengurus);
-                this.populateAkunDropdown();
-                this.renderAkunList();
                 this.render();
 
                 if (this.role) {
@@ -725,7 +676,7 @@
             }
 
             populateAkunDropdown() {
-                // Pengurus login is handled by Firebase Authentication email/password.
+                // Pengurus login is handled by Firebase Authentication phone number + OTP.
             }
 
             renderAkunList() {
@@ -801,6 +752,15 @@
                 });
             }
 
+            enterAsWarga() {
+                this.role = 'warga';
+                this.pengurusName = '';
+                localStorage.setItem('rt_user_role', 'warga');
+                localStorage.removeItem('rt_pengurus_name');
+                this.openDashboard();
+                this.showToast('Selamat datang di Laporan Warga.', 'success');
+            }
+
             switchLoginMode(mode) {
                 const btnWarga = document.getElementById('tabLoginWarga');
                 const btnPengurus = document.getElementById('tabLoginPengurus');
@@ -820,41 +780,99 @@
                 }
             }
 
-            async loginAsWarga() {
+            normalizePhoneNumber(raw) {
+                let phone = String(raw || '').replace(/[^0-9+]/g, '');
+                if (phone.startsWith('08')) phone = '+62' + phone.substring(1);
+                else if (phone.startsWith('8')) phone = '+62' + phone;
+                if (!/^\+62[0-9]{9,13}$/.test(phone)) return null;
+                return phone;
+            }
+
+            setLoginStatus(message, type = 'info') {
+                const el = document.getElementById('loginStatus');
+                if (!el) return;
+                el.textContent = message;
+                el.className = 'text-center text-xs rounded-xl px-3 py-2 ' + (type === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-200' : type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600');
+            }
+
+            async getRecaptchaVerifier() {
+                if (!this.auth) throw new Error('Firebase Authentication belum aktif.');
+                if (this.recaptchaVerifier) {
+                    try { this.recaptchaVerifier.clear(); } catch (_) {}
+                }
+                this.recaptchaVerifier = new RecaptchaVerifier(this.auth, 'recaptcha-container', { size: 'invisible' });
+                await this.recaptchaVerifier.render();
+                return this.recaptchaVerifier;
+            }
+
+            async sendPhoneOtp(mode) {
+                const inputId = mode === 'pengurus' ? 'inputPhonePengurus' : 'inputPhone';
+                const phone = this.normalizePhoneNumber(document.getElementById(inputId)?.value);
+                if (!phone) {
+                    this.setLoginStatus('Nomor HP tidak valid. Gunakan format 08xxxxxxxxxx atau +628xxxxxxxxxx.', 'error');
+                    return;
+                }
+                if (!this.auth) {
+                    this.setLoginStatus('Firebase Authentication belum aktif.', 'error');
+                    return;
+                }
                 try {
-                    if (this.auth && !this.auth.currentUser) await signInAnonymously(this.auth);
-                    this.role = 'warga';
-                    this.pengurusName = 'Warga Blok P';
-                    localStorage.setItem('rt_user_role', 'warga');
-                    localStorage.setItem('rt_pengurus_name', 'Warga Blok P');
-                    this.openDashboard();
-                    this.showToast('Masuk sebagai Warga (Mode Transparan)', 'success');
+                    this.pendingPhone = phone;
+                    this.pendingLoginMode = mode;
+                    const verifier = await this.getRecaptchaVerifier();
+                    this.confirmationResult = await signInWithPhoneNumber(this.auth, phone, verifier);
+                    document.getElementById(mode === 'pengurus' ? 'otpPengurusWrap' : 'otpWargaWrap').classList.remove('hidden');
+                    document.getElementById(mode === 'pengurus' ? 'btnPhonePengurus' : 'btnPhoneWarga').classList.add('hidden');
+                    document.getElementById(mode === 'pengurus' ? 'btnVerifyPengurus' : 'btnVerifyWarga').classList.remove('hidden');
+                    this.setLoginStatus('Kode OTP sudah dikirim melalui SMS ke ' + phone.replace(/^(.{5}).*(.{3})$/, '$1••••$2') + '.', 'success');
                 } catch (err) {
-                    this.showCustomAlert('Akses Warga Gagal', 'Firebase Authentication belum aktif atau konfigurasi belum benar.', 'alert');
+                    console.error(err);
+                    this.setLoginStatus('Gagal mengirim OTP: ' + (err.code || err.message || 'silakan coba lagi.'), 'error');
+                    if (this.recaptchaVerifier) { try { this.recaptchaVerifier.clear(); } catch (_) {} this.recaptchaVerifier = null; }
                 }
             }
 
-            async loginAsPengurus(e) {
-                e.preventDefault();
-                const email = document.getElementById('inputEmailPengurus').value.trim();
-                const password = document.getElementById('inputPasswordPengurus').value;
-
-                if (!this.auth) {
-                    this.showCustomAlert('Firebase Belum Aktif', 'Isi firebase-config.js lalu deploy ulang aplikasi.', 'alert');
+            async verifyPhoneOtp(mode) {
+                if (!this.confirmationResult || this.pendingLoginMode !== mode) {
+                    this.setLoginStatus('Silakan kirim kode OTP terlebih dahulu.', 'error');
                     return;
                 }
-
+                const otp = document.getElementById(mode === 'pengurus' ? 'inputOtpPengurus' : 'inputOtpWarga')?.value.trim();
+                if (!/^\d{6}$/.test(otp)) {
+                    this.setLoginStatus('Masukkan kode OTP 6 digit.', 'error');
+                    return;
+                }
                 try {
-                    const cred = await signInWithEmailAndPassword(this.auth, email, password);
-                    this.role = 'pengurus';
-                    this.pengurusName = cred.user.email || email;
-                    localStorage.setItem('rt_user_role', 'pengurus');
-                    localStorage.setItem('rt_pengurus_name', this.pengurusName);
-                    this.openDashboard();
-                    this.showToast(`Selamat datang, ${this.pengurusName}`, 'success');
+                    const cred = await this.confirmationResult.confirm(otp);
+                    const user = cred.user;
+                    if (mode === 'pengurus') {
+                        const profileRef = doc(this.db, 'pengurus', user.uid);
+                        const profileSnap = await getDoc(profileRef);
+                        if (!profileSnap.exists()) {
+                            await signOut(this.auth);
+                            this.confirmationResult = null;
+                            this.setLoginStatus('Nomor HP berhasil diverifikasi, tetapi belum terdaftar sebagai Pengurus. Minta UID ini didaftarkan pada koleksi pengurus di Firebase.', 'error');
+                            return;
+                        }
+                        const profile = profileSnap.data() || {};
+                        this.role = 'pengurus';
+                        this.pengurusName = profile.nama || 'Pengurus RT';
+                        localStorage.setItem('rt_user_role', 'pengurus');
+                        localStorage.setItem('rt_pengurus_name', this.pengurusName);
+                        this.openDashboard();
+                        this.showToast(`Selamat datang, ${this.pengurusName}`, 'success');
+                    } else {
+                        this.role = 'warga';
+                        this.pengurusName = 'Warga Blok P';
+                        localStorage.setItem('rt_user_role', 'warga');
+                        localStorage.setItem('rt_pengurus_name', 'Warga Blok P');
+                        this.openDashboard();
+                        this.showToast('Verifikasi berhasil. Selamat datang di Laporan Warga.', 'success');
+                    }
+                    this.confirmationResult = null;
                 } catch (err) {
                     console.error(err);
-                    this.showCustomAlert('Login Gagal', 'Email atau password tidak benar, atau metode Email/Password belum diaktifkan di Firebase.', 'alert');
+                    this.setLoginStatus('OTP salah atau sudah kedaluwarsa. Silakan kirim OTP baru.', 'error');
                 }
             }
 
@@ -875,8 +893,15 @@
 
             showLoginGate() {
                 document.getElementById('loginPage').classList.remove('hidden');
-                document.getElementById('inputPasswordPengurus').value = '';
-                this.populateAkunDropdown();
+                const otpPengurus = document.getElementById('inputOtpPengurus');
+                if (otpPengurus) otpPengurus.value = '';
+                const status = document.getElementById('loginStatus');
+                if (status) status.classList.add('hidden');
+['otpPengurusWrap','btnVerifyPengurus'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+['btnPhonePengurus'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
+                this.confirmationResult = null;
+                this.pendingPhone = '';
+                this.pendingLoginMode = '';
             }
 
             applyRoleUI() {

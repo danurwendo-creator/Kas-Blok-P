@@ -1,48 +1,43 @@
-# KAS WARGA BLOK P — Firebase + Vercel
+# Kas Warga Blok P — Firebase Phone Authentication + Vercel
 
-Versi ini memakai Firebase Authentication + Cloud Firestore. Warga masuk tanpa password melalui Anonymous Authentication; pengurus masuk memakai Email/Password Firebase Authentication.
+## 1. Firebase Authentication
+Aktifkan:
+- Phone Number
 
-## 1. Buat Firebase Project
+Warga dan Pengurus masuk menggunakan nomor HP + OTP SMS.
 
-Di Firebase Console:
-1. Create project.
-2. Add Web App.
-3. Copy Firebase Web App configuration ke `firebase-config.js`.
-4. Authentication > Sign-in method: aktifkan **Anonymous** dan **Email/Password**.
-5. Firestore Database: Create database.
-6. Firestore Rules: gunakan isi `firestore.rules`.
+## 2. Pengurus / whitelist
+Setelah nomor HP Pengurus berhasil login melalui Phone Authentication, buka Firebase Authentication > Users dan salin **UID** akun tersebut.
 
-Dokumentasi resmi:
-- https://firebase.google.com/docs/web/setup
-- https://firebase.google.com/docs/auth/web/start
+Di Firestore buat collection:
+`pengurus`
 
-## 2. Buat akun pengurus
+Buat document dengan:
+- **Document ID = UID Firebase Pengurus**
+- `nama`: nama pengurus
+- `phone`: nomor HP pengurus (opsional untuk profil)
+- `role`: `pengurus`
 
-Di Firebase Console > Authentication > Users:
-- Add user.
-- Masukkan email pengurus.
-- Tentukan password.
+Contoh:
+`pengurus/AbCdEf123...`
 
-Jangan menyimpan password di Firestore.
+Aplikasi hanya memberikan akses Pengurus jika UID hasil login Phone Authentication memiliki document tersebut.
 
-## 3. Isi profil pengurus
-
-Setelah login sebagai pengurus, gunakan menu **Akun Pengurus RT** untuk menyimpan nama, jabatan, dan email profil.
+## 3. Firestore
+Gunakan `firestore.rules` yang sudah disertakan. Warga yang sudah terautentikasi dapat membaca data transparansi. Hanya UID yang terdaftar di `pengurus` yang dapat membuat, mengubah, atau menghapus transaksi dan data warga.
 
 ## 4. Deploy ke Vercel
+Upload repository ke GitHub lalu import repository tersebut ke Vercel.
 
-Upload seluruh folder project ini sebagai project baru di Vercel.
+## 5. Phone Authentication di Firebase
+Di Firebase Console:
+Authentication > Sign-in method > Phone > Enable.
 
-Tidak membutuhkan build command karena aplikasi adalah static web app.
+Untuk domain produksi, pastikan domain Vercel Anda ditambahkan pada Authentication > Settings > Authorized domains.
 
-Setelah deploy, buka URL Vercel dari smartphone dan pilih **Add to Home Screen**.
+## 6. Format nomor HP
+Aplikasi menerima format Indonesia:
+- `0812xxxxxxxx`
+- `+62812xxxxxxxx`
 
-## 5. Struktur data Firestore
-
-- `transaksi` — pemasukan/pengeluaran
-- `warga` — daftar warga dan status iuran
-- `pengurus` — profil publik pengurus (tanpa password)
-
-## 6. Catatan keamanan
-
-Firestore Rules membolehkan read publik untuk transparansi, tetapi create/update/delete hanya untuk akun yang memiliki email Authentication. Untuk produksi, review rules sebelum go-live.
+Aplikasi akan menormalkan nomor menjadi format E.164 (`+62...`) sebelum meminta OTP.
