@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Kas Warga Blok P">
+    <link rel="manifest" href="manifest.webmanifest">
+    <title>Aplikasi Kas Warga Blok P RT. 011 / RW. 013 Grand Riscon Rancaekek</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        button, input, select, textarea {
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (max-width: 640px) {
+            body { font-size: 14px; }
+            #loginPage > div { max-height: calc(100dvh - 24px); overflow-y: auto; }
+            table { min-width: 760px; }
+            .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+            input, select, textarea, button { min-height: 42px; }
+        }
+        @media (display-mode: standalone) {
+            header { padding-top: max(0.75rem, env(safe-area-inset-top)); }
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <div id="loginPage" class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 p-6 sm:p-8 space-y-6">
+            <div class="text-center space-y-2">
+                <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-inner">
+                    <i class="fa-solid fa-house-chimney"></i>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Kas Warga Blok P</h2>
+                <p class="text-xs sm:text-sm text-slate-500">RT. 011 / RW. 013 Grand Riscon Rancaekek</p>
+            </div>
+
+            <!-- Role Choice Tabs inside Login Gate -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
+                <button type="button" id="tabLoginWarga" onclick="app.switchLoginMode('warga')" class="py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-white text-indigo-700 shadow-sm transition">
+                    <i class="fa-solid fa-eye mr-1.5"></i> Warga (Viewer)
+                </button>
+                <button type="button" id="tabLoginPengurus" onclick="app.switchLoginMode('pengurus')" class="py-2.5 text-xs sm:text-sm font-semibold rounded-xl text-slate-600 hover:text-slate-900 transition">
+                    <i class="fa-solid fa-user-gear mr-1.5"></i> Pengurus / Admin
+                </button>
+            </div>
+
+            <!-- Form Warga View -->
+            <div id="loginFormWarga" class="space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 text-xs text-blue-800 space-y-1.5">
+                    <p class="font-bold flex items-center"><i class="fa-solid fa-circle-info mr-1.5 text-blue-600"></i> Mode Transparan Warga</p>
+                    <p>Warga dapat melihat laporan kas, total saldo, info QRIS, dan status iuran secara transparan tanpa perlu password.</p>
+                </div>
+                <button type="button" onclick="app.loginAsWarga()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl text-sm transition shadow-lg shadow-indigo-600/20 flex items-center justify-center space-x-2">
+                    <span>Masuk ke Laporan Warga</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- Form Pengurus / Admin Login -->
+            <form id="loginFormPengurus" onsubmit="app.loginAsPengurus(event)" class="space-y-4 hidden">
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-800 space-y-1.5">
+                    <p class="font-bold flex items-center"><i class="fa-solid fa-shield-halved mr-1.5 text-amber-600"></i> Login Akun Pengurus RT</p>
+                    <p>Gunakan email dan password Firebase Authentication. Password tidak disimpan di Firestore.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Email Pengurus</label>
+                    <input type="email" id="inputEmailPengurus" placeholder="pengurus@contoh.com" autocomplete="username" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
+                    <input type="password" id="inputPasswordPengurus" placeholder="Masukkan password pengurus" autocomplete="current-password" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3" required>
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl text-sm transition shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-2">
+                    <span>Login Pengurus RT</span>
+                    <i class="fa-solid fa-lock-open"></i>
+                </button>
+            </form>
+
+            <div class="text-center pt-2">
+                <p class="text-[11px] text-slate-400">&copy; 2026 Grand Riscon Rancaekek</p>
+            </div>
+        </div>
+    </div>
+
+    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+                    <i class="fa-solid fa-house-chimney text-lg sm:text-xl text-indigo-200"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xs sm:text-sm md:text-base leading-tight">Blok P RT. 011 / RW. 013</h1>
+                    <p class="text-[10px] sm:text-[11px] text-indigo-200">Grand Riscon Rancaekek</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-1.5 sm:space-x-2">
+                <button onclick="app.openModal('qrisModal')" class="bg-indigo-600 hover:bg-indigo-800 text-white p-2 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-sm flex items-center space-x-1" title="Info QRIS">
+                    <i class="fa-solid fa-qrcode text-sm"></i>
+                    <span class="hidden md:inline">QRIS</span>
+                </button>
+                <button id="btnCatatTransaksi" onclick="app.openModal('transaksiModal')" class="bg-emerald-600 hover:bg-emerald-700 text-white p-2 sm:px-3.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-sm flex items-center space-x-1 hidden" title="Catat Transaksi">
+                    <i class="fa-solid fa-plus text-sm"></i>
+                    <span class="hidden md:inline">Catat</span>
+                </button>
+                <div class="bg-amber-500/20 border border-amber-400/30 px-2.5 py-1.5 rounded-lg text-xs font-medium text-amber-100 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-user-shield text-amber-300"></i>
+                    <span id="roleBadgeText" class="font-bold text-[11px] sm:text-xs">Warga</span>
+                </div>
+                <button onclick="app.logout()" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-2 rounded-lg text-xs sm:text-sm transition shadow-sm flex items-center space-x-1" title="Keluar">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="hidden sm:inline">Keluar</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+
+        <!-- Role Banner -->
+        <div id="roleBanner" class="bg-blue-50 border border-blue-200 px-3.5 py-2.5 rounded-xl text-xs text-blue-800 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-circle-info text-blue-600 shrink-0"></i>
+                <span id="roleBannerText">Anda masuk sebagai <strong>Warga</strong> (Mode Transparan).</span>
+            </div>
+            <button onclick="app.logout()" class="underline font-semibold hover:text-blue-900 shrink-0 ml-2">Ganti Akses</button>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+            <div id="toastContent" class="flex items-center space-x-3 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-700 text-sm">
+                <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+                <span id="toastMessage">Pesan berhasil disimpan</span>
+            </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <span class="text-xs sm:text-sm font-medium text-slate-500 whitespace-nowrap"><i class="fa-regular fa-calendar-days mr-1.5"></i>Periode:</span>
+                <select id="filterBulan" onchange="app.render()" class="bg-slate-50 border border-slate-300 text-slate-700 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2 flex-1 sm:flex-none">
+                    <option value="all">Semua Bulan</option>
+                    <option value="01">Januari</option>
+                    <option value="02">Februari</option>
+                    <option value="03">Maret</option>
+                    <option value="04">April</option>
+                    <option value="05">Mei</option>
+                    <option value="06">Juni</option>
+                    <option value="07">Juli</option>
+                    <option value="08">Agustus</option>
+                    <option value="09">September</option>
+                    <option value="10">Oktober</option>
+                    <option value="11">November</option>
+                    <option value="12">Desember</option>
+                </select>
+                <select id="filterTahun" onchange="app.render()" class="bg-slate-50 border border-slate-300 text-slate-700 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 p-2 w-28">
+                    <!-- Dinamis terisi via JS -->
+                </select>
+            </div>
+            
+            <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
+                <div class="relative w-full md:w-64">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <input type="text" id="searchInput" oninput="app.render()" placeholder="Cari keterangan / warga..." class="bg-slate-50 border border-slate-300 text-slate-700 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-9 pr-3 py-2">
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">Total Saldo Kas RT</p>
+                        <h3 id="cardSaldo" class="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-indigo-50 text-indigo-600 p-3 sm:p-3.5 rounded-xl shrink-0">
+                        <i class="fa-solid fa-wallet text-lg sm:text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-2.5 sm:mt-3 flex items-center text-[11px] sm:text-xs text-slate-500">
+                    <span class="text-emerald-600 font-medium flex items-center mr-1.5"><i class="fa-solid fa-shield-halved mr-1"></i> Aman</span> &bull; Akumulasi bersih kas
+                </div>
+            </div>
+
+            <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">Total Pemasukan</p>
+                        <h3 id="cardPemasukan" class="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-600 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-emerald-50 text-emerald-600 p-3 sm:p-3.5 rounded-xl shrink-0">
+                        <i class="fa-solid fa-arrow-trend-up text-lg sm:text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-2.5 sm:mt-3 flex items-center text-[11px] sm:text-xs text-slate-500">
+                    <span id="countPemasukan" class="font-medium text-slate-700 mr-1">0 transaksi</span> pada periode ini
+                </div>
+            </div>
+
+            <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-500">Total Pengeluaran</p>
+                        <h3 id="cardPengeluaran" class="text-xl sm:text-2xl md:text-3xl font-bold text-rose-600 mt-1">Rp 0</h3>
+                    </div>
+                    <div class="bg-rose-50 text-rose-600 p-3 sm:p-3.5 rounded-xl shrink-0">
+                        <i class="fa-solid fa-arrow-trend-down text-lg sm:text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-2.5 sm:mt-3 flex items-center text-[11px] sm:text-xs text-slate-500">
+                    <span id="countPengeluaran" class="font-medium text-slate-700 mr-1">0 transaksi</span> pada periode ini
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="flex border-b border-slate-200 overflow-x-auto">
+                <button type="button" onclick="app.switchTab('transaksi')" id="tabBtn-transaksi" class="flex-1 py-3.5 px-4 sm:px-6 text-center text-xs sm:text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Daftar Transaksi</span>
+                </button>
+                <button type="button" onclick="app.switchTab('warga')" id="tabBtn-warga" class="flex-1 py-3.5 px-4 sm:px-6 text-center text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Daftar Warga & Iuran</span>
+                </button>
+                <button type="button" onclick="app.switchTab('pengurus')" id="tabBtn-pengurus" class="flex-1 py-3.5 px-4 sm:px-6 text-center text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span>Akun Pengurus RT</span>
+                </button>
+            </div>
+
+            <!-- Tab 1: Transaksi Content -->
+            <div id="tabContent-transaksi" class="p-3 sm:p-6">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                    <h3 class="font-bold text-slate-800 text-sm sm:text-base flex items-center">
+                        <i class="fa-solid fa-receipt text-indigo-600 mr-2"></i> Rincian Pemasukan & Pengeluaran
+                    </h3>
+                    <div class="flex items-center space-x-2 w-full sm:w-auto">
+                        <select id="filterMetode" onchange="app.render()" class="bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg p-2 flex-1 sm:flex-none">
+                            <option value="all">Semua Metode</option>
+                            <option value="Tunai">Tunai</option>
+                            <option value="QRIS / Transfer">QRIS / Transfer</option>
+                        </select>
+                        <select id="filterKategori" onchange="app.render()" class="bg-slate-50 border border-slate-300 text-slate-700 text-xs rounded-lg p-2 flex-1 sm:flex-none">
+                            <option value="all">Semua Kategori</option>
+                            <option value="Iuran Warga">Iuran Warga</option>
+                            <option value="Sumbangan/Donasi">Sumbangan/Donasi</option>
+                            <option value="Kas Keliling">Kas Keliling</option>
+                            <option value="Pemasukan Lainnya">Pemasukan Lainnya</option>
+                            <option value="Kebersihan & Keamanan">Kebersihan & Keamanan</option>
+                            <option value="Perbaikan Infrastruktur">Perbaikan Infrastruktur</option>
+                            <option value="Sosial & Kemasyarakatan">Sosial & Kemasyarakatan</option>
+                            <option value="Pengeluaran Lainnya">Pengeluaran Lainnya</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[650px]">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 uppercase text-[11px] sm:text-xs tracking-wider border-y border-slate-200">
+                                <th class="py-3 px-3 sm:px-4 font-semibold">Tanggal</th>
+                                <th class="py-3 px-3 sm:px-4 font-semibold">Keterangan / Warga</th>
+                                <th class="py-3 px-3 sm:px-4 font-semibold">Kategori</th>
+                                <th class="py-3 px-3 sm:px-4 font-semibold">Metode</th>
+                                <th class="py-3 px-3 sm:px-4 font-semibold">Jenis</th>
+                                <th class="py-3 px-3 sm:px-4 font-semibold text-right">Nominal</th>
+                                <th id="thAksiTransaksi" class="py-3 px-3 sm:px-4 font-semibold text-center hidden">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelTransaksiBody" class="divide-y divide-slate-100 text-xs sm:text-sm">
+                            <!-- Diisi via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="emptyTransaksi" class="hidden text-center py-12 text-slate-400">
+                    <i class="fa-regular fa-folder-open text-4xl mb-2"></i>
+                    <p class="text-xs sm:text-sm">Belum ada data transaksi yang tercatat.</p>
+                </div>
+            </div>
+
+            <!-- Tab 2: Warga & Status Iuran Content -->
+            <div id="tabContent-warga" class="p-3 sm:p-6 hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm sm:text-base flex items-center">
+                            <i class="fa-solid fa-address-book text-indigo-600 mr-2"></i> Data Warga & Status Pembayaran Iuran
+                        </h3>
+                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Kelola daftar kepala keluarga dan status iuran bulanan.</p>
+                    </div>
+                    <button type="button" id="btnTambahWarga" onclick="app.openModal('wargaModal')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 shadow-sm hidden">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Tambah Warga</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[600px]">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 uppercase text-[11px] sm:text-xs tracking-wider border-y border-slate-200">
+                                <th class="py-3 px-3 sm:px-4 font-semibold">No. Rumah</th>
+                                <th class="py-3 px-3 sm:px-4 font-semibold">Nama Kepala Keluarga</th>
+                                <th class="py-3 px-3 sm:px-4 font-semibold">No. Telepon / WA</th>
+                                <th class="py-3 px-3 sm:px-4 font-semibold text-center">Status Bulan Ini</th>
+                                <th id="thAksiWarga" class="py-3 px-3 sm:px-4 font-semibold text-center hidden">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelWargaBody" class="divide-y divide-slate-100 text-xs sm:text-sm">
+                            <!-- Diisi via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="emptyWarga" class="hidden text-center py-12 text-slate-400">
+                    <i class="fa-regular fa-folder-open text-4xl mb-2"></i>
+                    <p class="text-xs sm:text-sm">Belum ada data warga yang tercatat.</p>
+                </div>
+            </div>
+
+            <!-- Tab 3: Manajemen Akun Pengurus Content -->
+            <div id="tabContent-pengurus" class="p-3 sm:p-6 hidden space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm sm:text-base flex items-center">
+                            <i class="fa-solid fa-users-gear text-amber-600 mr-2"></i> Daftar Akun Pengurus & Password RT
+                        </h3>
+                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Pengurus dapat mendaftarkan, melihat, atau menghapus akun akses pengurus lain.</p>
+                    </div>
+                    <button type="button" id="btnTambahAkunModal" onclick="app.openModal('akunModal')" class="bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-lg text-xs font-medium transition flex items-center space-x-1.5 shadow-sm hidden">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Tambah Akun Pengurus</span>
+                    </button>
+                </div>
+
+                <div id="wargaNoticeAkun" class="bg-blue-50 border border-blue-200 p-4 rounded-xl text-xs text-blue-800 hidden">
+                    <p class="font-bold mb-1"><i class="fa-solid fa-circle-info mr-1"></i> Informasi Akses Warga</p>
+                    <p>Anda sedang login sebagai Warga (Viewer). Daftar akun pengurus di bawah ditampilkan secara transparan, namun penambahan/penghapusan akun hanya dapat dilakukan oleh akun Pengurus.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="listAkunGridContainer">
+                    <!-- Dinamis terisi via JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Catat / Edit Transaksi -->
+    <div id="transaksiModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 transform transition-all">
+            <div class="bg-indigo-700 text-white px-5 py-3.5 flex items-center justify-between">
+                <h3 id="transaksiModalTitle" class="font-bold text-sm sm:text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-file-invoice-dollar mr-2"></i> Catat Transaksi Kas RT
+                </h3>
+                <button type="button" onclick="app.closeModal('transaksiModal')" class="text-indigo-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="transaksiForm" onsubmit="app.saveTransaksi(event)" class="p-4 sm:p-6 space-y-4">
+                <input type="hidden" id="transaksiId">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Jenis Transaksi</label>
+                        <select id="transaksiJenis" onchange="app.updateKategoriOptions()" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required>
+                            <option value="Pemasukan">Pemasukan (+)</option>
+                            <option value="Pengeluaran">Pengeluaran (-)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Tanggal</label>
+                        <input type="date" id="transaksiTanggal" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Kategori</label>
+                        <select id="transaksiKategori" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required>
+                            <!-- Dinamis terisi -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Metode Pembayaran</label>
+                        <select id="transaksiMetode" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required>
+                            <option value="Tunai">Tunai</option>
+                            <option value="QRIS / Transfer">QRIS / Transfer</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nominal (Rp)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 font-medium text-xs sm:text-sm">Rp</span>
+                        <input type="number" id="transaksiNominal" placeholder="Contoh: 50000" min="1" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2.5" required>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Keterangan / Nama Warga</label>
+                    <textarea id="transaksiKeterangan" rows="2" placeholder="Contoh: Iuran Bulanan Bpk. Budi RT 05 atau Pembelian Lampu Jalan" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required></textarea>
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" onclick="app.closeModal('transaksiModal')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2 rounded-lg text-xs sm:text-sm transition">Batal</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg text-xs sm:text-sm transition shadow-sm">Simpan Transaksi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Informasi QRIS RT -->
+    <div id="qrisModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-slate-100 p-5 sm:p-6 text-center space-y-3.5">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h4 class="font-bold text-slate-800 text-xs sm:text-sm flex items-center">
+                    <i class="fa-solid fa-qrcode text-indigo-600 mr-2"></i> QRIS Resmi Kas RT 011 / RW 013
+                </h4>
+                <button type="button" onclick="app.closeModal('qrisModal')" class="text-slate-400 hover:text-slate-600 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex flex-col items-center">
+                <div class="bg-white p-3 rounded-lg shadow-sm border border-slate-200 inline-block">
+                    <img src="https://placehold.co/220x220/ffffff/1e1b4b?text=QRIS+BLOK+P+RT11" alt="QRIS Kas RT" class="rounded w-44 h-44 object-cover" onerror="this.src='https://placehold.co/220x220/1e1b4b/ffffff?text=QRIS+RT+011'">
+                </div>
+                <p class="text-xs font-semibold text-slate-700 mt-2.5">NMID: ID2026011013P</p>
+                <p class="text-[11px] text-slate-500 mt-1">Scan menggunakan M-Banking atau E-Wallet apa saja (BCA, Mandiri, GoPay, OVO, QRIS All Payment)</p>
+            </div>
+            <div class="bg-indigo-50 p-3 rounded-xl text-left text-[11px] sm:text-xs text-indigo-800 flex items-start space-x-2">
+                <i class="fa-solid fa-circle-info text-indigo-600 mt-0.5 shrink-0"></i>
+                <span>Warga Blok P yang membayar via QRIS dimohon mengirim bukti transfer ke pengurus RT untuk segera diverifikasi ke dalam sistem.</span>
+            </div>
+            <button type="button" onclick="app.closeModal('qrisModal')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl text-xs sm:text-sm transition">Tutup</button>
+        </div>
+    </div>
+
+    <!-- Modal Tambah/Edit Warga -->
+    <div id="wargaModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100 transform transition-all">
+            <div class="bg-indigo-700 text-white px-5 py-3.5 flex items-center justify-between">
+                <h3 id="wargaModalTitle" class="font-bold text-sm sm:text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-user-plus mr-2"></i> Tambah Data Warga & Iuran
+                </h3>
+                <button type="button" onclick="app.closeModal('wargaModal')" class="text-indigo-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="wargaForm" onsubmit="app.saveWarga(event)" class="p-4 sm:p-6 space-y-4">
+                <input type="hidden" id="wargaId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nomor Rumah / Blok</label>
+                    <input type="text" id="wargaNoRumah" placeholder="Contoh: Blok P1 / 12" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Kepala Keluarga</label>
+                    <input type="text" id="wargaNama" placeholder="Contoh: Bpk. Ahmad Fauzi" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">No. Telepon / WhatsApp</label>
+                    <input type="text" id="wargaTelepon" placeholder="Contoh: 081234567890" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Status Iuran Bulan Ini</label>
+                    <select id="wargaStatus" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5" required>
+                        <option value="Lunas">Lunas</option>
+                        <option value="Belum Lunas">Belum Lunas</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" onclick="app.closeModal('wargaModal')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2 rounded-lg text-xs sm:text-sm transition">Batal</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg text-xs sm:text-sm transition shadow-sm">Simpan Warga</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Akun Pengurus Baru -->
+    <div id="akunModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100">
+            <div class="bg-amber-600 text-white px-5 py-3.5 flex items-center justify-between">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-user-plus mr-2"></i> Tambah Akun Pengurus RT
+                </h3>
+                <button type="button" onclick="app.closeModal('akunModal')" class="text-amber-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="formTambahAkun" onsubmit="app.saveAkunPengurus(event)" class="p-4 sm:p-6 space-y-4">
+                <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-xs text-amber-900">
+                    <p class="font-bold mb-1">Buat Akses Login Pengurus</p>
+                    <p>Buat akun login pengurus melalui Firebase Authentication, lalu gunakan form ini untuk profil pengurus.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nama Pengurus & Jabatan</label>
+                    <input type="text" id="akunNamaBaru" placeholder="Contoh: Bpk. Syaiful (Bendahara)" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg block w-full p-2.5" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Email Login Firebase</label>
+                    <input type="email" id="akunEmailBaru" placeholder="pengurus@contoh.com" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg block w-full p-2.5" required>
+                </div>
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" onclick="app.closeModal('akunModal')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2 rounded-lg text-xs sm:text-sm transition">Batal</button>
+                    <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-medium px-5 py-2 rounded-lg text-xs sm:text-sm transition">Simpan Akun</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Modal Konfirmasi / Pesan -->
+    <div id="customAlertModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden border border-slate-100 p-6 text-center space-y-4">
+            <div id="alertIconContainer" class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl">
+                <i id="alertIcon" class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h4 id="alertTitle" class="font-bold text-slate-800 text-base sm:text-lg">Konfirmasi</h4>
+                <p id="alertMessage" class="text-xs sm:text-sm text-slate-500 mt-1">Apakah Anda yakin ingin melakukan tindakan ini?</p>
+            </div>
+            <div id="alertButtons" class="flex space-x-3 pt-2">
+                <button type="button" id="alertCancelBtn" onclick="app.closeCustomAlert()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 rounded-lg text-xs sm:text-sm transition">Batal</button>
+                <button type="button" id="alertConfirmBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-xs sm:text-sm transition">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-5 text-center text-[11px] sm:text-xs text-slate-500 mt-auto px-4">
+        <p>&copy; 2026 Kas Warga Blok P RT. 011 / RW. 013 Grand Riscon Rancaekek. Transparansi Keuangan Warga.</p>
+    </footer>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+        }
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+        import { firebaseConfig, APP_ID } from "./firebase-config.js";
+
+        class KasRTApp {
+            constructor() {
+                this.transaksi = [];
+                this.warga = [];
+                this.pengurusList = [];
+                this.db = null;
+                this.auth = null;
+                this.appId = APP_ID;
+                this.cloudSyncStarted = false;
+                
+                this.role = localStorage.getItem('rt_user_role') || null;
+                this.pengurusName = localStorage.getItem('rt_pengurus_name') || '';
+
+                this.initFilterTahun();
+                this.initFirebase();
+            }
+
+            async initFirebase() {
+                try {
+                    if (!firebaseConfig.projectId || firebaseConfig.projectId === 'REPLACE_ME') {
+                        this.loadDummyData();
+                        return;
+                    }
+
+                    const app = initializeApp(firebaseConfig);
+                    this.db = getFirestore(app);
+                    this.auth = getAuth(app);
+
+                    onAuthStateChanged(this.auth, (user) => {
+                        if (user && user.email) {
+                            this.role = 'pengurus';
+                            this.pengurusName = user.email;
+                            localStorage.setItem('rt_user_role', 'pengurus');
+                            localStorage.setItem('rt_pengurus_name', user.email);
+                        }
+                        this.initCloudSync();
+                    });
+
+                    // Public resident mode uses an anonymous Firebase session for secure Firestore rules.
+                    if (!this.auth.currentUser) {
+                        await signInAnonymously(this.auth);
+                    }
+                } catch (e) {
+                    console.error('Firebase init error:', e);
+                    this.loadDummyData();
+                }
+            }
+            initCloudSync() {
+                if (!this.db || this.cloudSyncStarted) return;
+                this.cloudSyncStarted = true;
+                
+                // Sync Transaksi
+                const colTransaksi = collection(this.db, 'transaksi');
+                onSnapshot(colTransaksi, (snapshot) => {
+                    this.transaksi = [];
+                    snapshot.forEach(docSnap => {
+                        this.transaksi.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    if (this.transaksi.length === 0) this.seedInitialData();
+                    else this.render();
+                }, (err) => console.error("Sync error transaksi:", err));
+
+                // Sync Warga
+                const colWarga = collection(this.db, 'warga');
+                onSnapshot(colWarga, (snapshot) => {
+                    this.warga = [];
+                    snapshot.forEach(docSnap => {
+                        this.warga.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    if (this.warga.length === 0) this.seedInitialWarga();
+                    else this.render();
+                }, (err) => console.error("Sync error warga:", err));
+
+                // Sync Akun Pengurus
+                const colAkun = collection(this.db, 'pengurus');
+                onSnapshot(colAkun, (snapshot) => {
+                    this.pengurusList = [];
+                    snapshot.forEach(docSnap => {
+                        this.pengurusList.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    this.renderAkunList();
+                }, (err) => console.error("Sync error pengurus:", err));
+            }
+
+            async seedInitialData() {
+                const defaultTransaksi = [
+                    { id: 't1', tanggal: '2026-06-01', jenis: 'Pemasukan', kategori: 'Iuran Warga', metode: 'QRIS / Transfer', nominal: 50000, keterangan: 'Iuran Bulanan Blok P1 No. 12' },
+                    { id: 't2', tanggal: '2026-06-02', jenis: 'Pemasukan', kategori: 'Iuran Warga', metode: 'Tunai', nominal: 50000, keterangan: 'Iuran Bulanan Blok P2 No. 05' },
+                    { id: 't3', tanggal: '2026-06-05', jenis: 'Pengeluaran', kategori: 'Kebersihan & Keamanan', metode: 'Tunai', nominal: 150000, keterangan: 'Honor Petugas Kebersihan Blok P' }
+                ];
+                for (let t of defaultTransaksi) {
+                    await setDoc(doc(this.db, 'transaksi', t.id), t);
+                }
+            }
+
+            async seedInitialWarga() {
+                const defaultWarga = [
+                    { id: 'w1', noRumah: 'Blok P1 / 12', nama: 'Bpk. Ahmad Fauzi', telepon: '081234567890', status: 'Lunas' },
+                    { id: 'w2', noRumah: 'Blok P2 / 05', nama: 'Ibu Siti Aminah', telepon: '085678901234', status: 'Lunas' },
+                    { id: 'w3', noRumah: 'Blok P3 / 18', nama: 'Bpk. Hendra Gunawan', telepon: '081122334455', status: 'Belum Lunas' }
+                ];
+                for (let w of defaultWarga) {
+                    await setDoc(doc(this.db, 'warga', w.id), w);
+                }
+            }
+
+            async seedInitialAkun() {
+                // Authentication accounts are managed in Firebase Authentication.
+                // Never store passwords in Firestore.
+            }
+            persistLocalData() {
+                try {
+                    localStorage.setItem('kas_rt_transaksi', JSON.stringify(this.transaksi));
+                    localStorage.setItem('kas_rt_warga', JSON.stringify(this.warga));
+                    localStorage.setItem('kas_rt_pengurus', JSON.stringify(this.pengurusList));
+                } catch (e) { console.warn('Local persistence unavailable', e); }
+            }
+
+            loadDummyData() {
+                const savedTransaksi = localStorage.getItem('kas_rt_transaksi');
+                const savedWarga = localStorage.getItem('kas_rt_warga');
+                const savedPengurus = localStorage.getItem('kas_rt_pengurus');
+                this.transaksi = savedTransaksi ? JSON.parse(savedTransaksi) : [
+                    { id: 't1', tanggal: '2026-06-01', jenis: 'Pemasukan', kategori: 'Iuran Warga', metode: 'QRIS / Transfer', nominal: 50000, keterangan: 'Iuran Bulanan Blok P1 No. 12' },
+                    { id: 't2', tanggal: '2026-06-02', jenis: 'Pemasukan', kategori: 'Iuran Warga', metode: 'Tunai', nominal: 50000, keterangan: 'Iuran Bulanan Blok P2 No. 05' },
+                    { id: 't3', tanggal: '2026-06-05', jenis: 'Pengeluaran', kategori: 'Kebersihan & Keamanan', metode: 'Tunai', nominal: 150000, keterangan: 'Honor Petugas Kebersihan Blok P' }
+                ];
+                if (savedTransaksi) this.transaksi = JSON.parse(savedTransaksi);
+                this.warga = savedWarga ? JSON.parse(savedWarga) : [
+                    { id: 'w1', noRumah: 'Blok P1 / 12', nama: 'Bpk. Ahmad Fauzi', telepon: '081234567890', status: 'Lunas' },
+                    { id: 'w2', noRumah: 'Blok P2 / 05', nama: 'Ibu Siti Aminah', telepon: '085678901234', status: 'Lunas' },
+                    { id: 'w3', noRumah: 'Blok P3 / 18', nama: 'Bpk. Hendra Gunawan', telepon: '081122334455', status: 'Belum Lunas' }
+                ];
+                if (savedWarga) this.warga = JSON.parse(savedWarga);
+                this.pengurusList = savedPengurus ? JSON.parse(savedPengurus) : [
+                    { id: 'p1', nama: 'Ketua RT 011 (Bpk. Rudi)', email: 'ketua@kaswargablokp.local' },
+                    { id: 'p2', nama: 'Bendahara Blok P (Ibu Rina)', email: 'bendahara@kaswargablokp.local' }
+                ];
+                if (savedPengurus) this.pengurusList = JSON.parse(savedPengurus);
+                this.populateAkunDropdown();
+                this.renderAkunList();
+                this.render();
+
+                if (this.role) {
+                    this.openDashboard();
+                } else {
+                    this.showLoginGate();
+                }
+            }
+
+            populateAkunDropdown() {
+                // Pengurus login is handled by Firebase Authentication email/password.
+            }
+
+            renderAkunList() {
+                const container = document.getElementById('listAkunGridContainer');
+                if (!container) return;
+                
+                const btnTambahAkunModal = document.getElementById('btnTambahAkunModal');
+                const wargaNoticeAkun = document.getElementById('wargaNoticeAkun');
+
+                if (this.role === 'warga') {
+                    if (btnTambahAkunModal) btnTambahAkunModal.classList.add('hidden');
+                    if (wargaNoticeAkun) wargaNoticeAkun.classList.remove('hidden');
+                } else {
+                    if (btnTambahAkunModal) btnTambahAkunModal.classList.remove('hidden');
+                    if (wargaNoticeAkun) wargaNoticeAkun.classList.add('hidden');
+                }
+
+                container.innerHTML = this.pengurusList.map(p => `
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-1.5">
+                                <i class="fa-solid fa-user-tie text-amber-600"></i>
+                                <h4 class="font-bold text-slate-800 text-sm">${p.nama}</h4>
+                            </div>
+                            <p class="text-xs text-slate-500">Email: <span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">${p.email || '—'}</span></p>
+                        </div>
+                        ${this.role !== 'warga' && this.pengurusList.length > 1 ? `
+                            <button type="button" onclick="app.deleteAkunPengurus('${p.id}')" class="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition" title="Hapus Akun">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                `).join('');
+            }
+
+            async saveAkunPengurus(e) {
+                e.preventDefault();
+                if (this.role === 'warga' || !this.db) return;
+                const nama = document.getElementById('akunNamaBaru').value.trim();
+                const email = document.getElementById('akunEmailBaru').value.trim().toLowerCase();
+                const id = 'p_' + Date.now();
+                const profile = { id, nama, email, role: 'pengurus', updatedAt: new Date().toISOString() };
+                try {
+                    await setDoc(doc(this.db, 'pengurus', id), profile);
+                    this.closeModal('akunModal');
+                    document.getElementById('formTambahAkun').reset();
+                    this.showToast('Profil pengurus berhasil disimpan. Pastikan akun email tersebut sudah dibuat di Firebase Authentication.', 'success');
+                } catch (err) {
+                    console.error('Error save profil:', err);
+                    this.showCustomAlert('Gagal menyimpan', 'Pastikan Anda login sebagai pengurus dan Firestore Rules sudah diterapkan.', 'alert');
+                }
+            }
+
+            async deleteAkunPengurus(id) {
+                if (this.role === 'warga') return;
+                if (this.pengurusList.length <= 1) {
+                    this.showCustomAlert('Tidak dapat menghapus', 'Minimal harus ada 1 akun pengurus aktif.', 'alert');
+                    return;
+                }
+                this.showCustomAlert('Hapus Akun', 'Yakin ingin menghapus akun pengurus ini?', 'confirm', async () => {
+                    if (this.db) {
+                        try {
+                            await deleteDoc(doc(this.db, 'pengurus', id));
+                        } catch (err) {
+                            console.error("Error delete akun:", err);
+                        }
+                    }
+                    this.pengurusList = this.pengurusList.filter(p => p.id !== id);
+                    this.persistLocalData();
+                    this.renderAkunList();
+                    this.showToast('Akun pengurus dihapus', 'success');
+                    this.closeCustomAlert();
+                });
+            }
+
+            switchLoginMode(mode) {
+                const btnWarga = document.getElementById('tabLoginWarga');
+                const btnPengurus = document.getElementById('tabLoginPengurus');
+                const formWarga = document.getElementById('loginFormWarga');
+                const formPengurus = document.getElementById('loginFormPengurus');
+
+                if (mode === 'warga') {
+                    btnWarga.className = "py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-white text-indigo-700 shadow-sm transition";
+                    btnPengurus.className = "py-2.5 text-xs sm:text-sm font-semibold rounded-xl text-slate-600 hover:text-slate-900 transition";
+                    formWarga.classList.remove('hidden');
+                    formPengurus.classList.add('hidden');
+                } else {
+                    btnPengurus.className = "py-2.5 text-xs sm:text-sm font-semibold rounded-xl bg-white text-emerald-700 shadow-sm transition";
+                    btnWarga.className = "py-2.5 text-xs sm:text-sm font-semibold rounded-xl text-slate-600 hover:text-slate-900 transition";
+                    formPengurus.classList.remove('hidden');
+                    formWarga.classList.add('hidden');
+                }
+            }
+
+            async loginAsWarga() {
+                try {
+                    if (this.auth && !this.auth.currentUser) await signInAnonymously(this.auth);
+                    this.role = 'warga';
+                    this.pengurusName = 'Warga Blok P';
+                    localStorage.setItem('rt_user_role', 'warga');
+                    localStorage.setItem('rt_pengurus_name', 'Warga Blok P');
+                    this.openDashboard();
+                    this.showToast('Masuk sebagai Warga (Mode Transparan)', 'success');
+                } catch (err) {
+                    this.showCustomAlert('Akses Warga Gagal', 'Firebase Authentication belum aktif atau konfigurasi belum benar.', 'alert');
+                }
+            }
+
+            async loginAsPengurus(e) {
+                e.preventDefault();
+                const email = document.getElementById('inputEmailPengurus').value.trim();
+                const password = document.getElementById('inputPasswordPengurus').value;
+
+                if (!this.auth) {
+                    this.showCustomAlert('Firebase Belum Aktif', 'Isi firebase-config.js lalu deploy ulang aplikasi.', 'alert');
+                    return;
+                }
+
+                try {
+                    const cred = await signInWithEmailAndPassword(this.auth, email, password);
+                    this.role = 'pengurus';
+                    this.pengurusName = cred.user.email || email;
+                    localStorage.setItem('rt_user_role', 'pengurus');
+                    localStorage.setItem('rt_pengurus_name', this.pengurusName);
+                    this.openDashboard();
+                    this.showToast(`Selamat datang, ${this.pengurusName}`, 'success');
+                } catch (err) {
+                    console.error(err);
+                    this.showCustomAlert('Login Gagal', 'Email atau password tidak benar, atau metode Email/Password belum diaktifkan di Firebase.', 'alert');
+                }
+            }
+
+            openDashboard() {
+                document.getElementById('loginPage').classList.add('hidden');
+                this.applyRoleUI();
+                this.render();
+            }
+
+            async logout() {
+                try { if (this.auth) await signOut(this.auth); } catch (e) {}
+                localStorage.removeItem('rt_user_role');
+                localStorage.removeItem('rt_pengurus_name');
+                this.role = null;
+                this.pengurusName = '';
+                this.showLoginGate();
+            }
+
+            showLoginGate() {
+                document.getElementById('loginPage').classList.remove('hidden');
+                document.getElementById('inputPasswordPengurus').value = '';
+                this.populateAkunDropdown();
+            }
+
+            applyRoleUI() {
+                const roleBadge = document.getElementById('roleBadgeText');
+                const bannerText = document.getElementById('roleBannerText');
+                const btnCatat = document.getElementById('btnCatatTransaksi');
+                const btnTambahWarga = document.getElementById('btnTambahWarga');
+                const thAksiWarga = document.getElementById('thAksiWarga');
+                const thAksiTransaksi = document.getElementById('thAksiTransaksi');
+
+                if (this.role === 'warga') {
+                    roleBadge.textContent = 'Warga';
+                    bannerText.innerHTML = `Anda masuk sebagai <strong>Warga</strong> (Mode Transparan: Hanya dapat melihat saldo, laporan, status iuran, dan daftar akun pengurus).`;
+                    if (btnCatat) btnCatat.classList.add('hidden');
+                    if (btnTambahWarga) btnTambahWarga.classList.add('hidden');
+                    if (thAksiWarga) thAksiWarga.classList.add('hidden');
+                    if (thAksiTransaksi) thAksiTransaksi.classList.add('hidden');
+                } else {
+                    roleBadge.textContent = `Pengurus`;
+                    bannerText.innerHTML = `Anda masuk sebagai <strong>Pengurus (${this.pengurusName})</strong> &bull; Akses penuh mengelola kas, warga, dan akun pengurus.`;
+                    if (btnCatat) btnCatat.classList.remove('hidden');
+                    if (btnTambahWarga) btnTambahWarga.classList.remove('hidden');
+                    if (thAksiWarga) thAksiWarga.classList.remove('hidden');
+                    if (thAksiTransaksi) thAksiTransaksi.classList.remove('hidden');
+                }
+            }
+
+            initFilterTahun() {
+                const tahunSelect = document.getElementById('filterTahun');
+                const currentYear = new Date().getFullYear();
+                let options = `<option value="all">Semua Tahun</option>`;
+                for (let y = currentYear; y >= currentYear - 3; y--) {
+                    options += `<option value="${y}">${y}</option>`;
+                }
+                tahunSelect.innerHTML = options;
+                tahunSelect.value = currentYear.toString();
+
+                const today = new Date().toISOString().split('T')[0];
+                const tanggalInput = document.getElementById('transaksiTanggal');
+                if (tanggalInput && !tanggalInput.value) {
+                    tanggalInput.value = today;
+                }
+            }
+
+            switchTab(tabName) {
+                const btnTransaksi = document.getElementById('tabBtn-transaksi');
+                const btnWarga = document.getElementById('tabBtn-warga');
+                const btnPengurus = document.getElementById('tabBtn-pengurus');
+                const contentTransaksi = document.getElementById('tabContent-transaksi');
+                const contentWarga = document.getElementById('tabContent-warga');
+                const contentPengurus = document.getElementById('tabContent-pengurus');
+
+                btnTransaksi.className = "flex-1 py-3.5 px-4 sm:px-6 text-center text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap transition flex items-center justify-center space-x-2";
+                btnWarga.className = "flex-1 py-3.5 px-4 sm:px-6 text-center text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap transition flex items-center justify-center space-x-2";
+                btnPengurus.className = "flex-1 py-3.5 px-4 sm:px-6 text-center text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap transition flex items-center justify-center space-x-2";
+                
+                contentTransaksi.classList.add('hidden');
+                contentWarga.classList.add('hidden');
+                contentPengurus.classList.add('hidden');
+
+                if (tabName === 'transaksi') {
+                    btnTransaksi.className = "flex-1 py-3.5 px-4 sm:px-6 text-center text-xs sm:text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap transition flex items-center justify-center space-x-2";
+                    contentTransaksi.classList.remove('hidden');
+                } else if (tabName === 'warga') {
+                    btnWarga.className = "flex-1 py-3.5 px-4 sm:px-6 text-center text-xs sm:text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 whitespace-nowrap transition flex items-center justify-center space-x-2";
+                    contentWarga.classList.remove('hidden');
+                } else if (tabName === 'pengurus') {
+                    btnPengurus.className = "flex-1 py-3.5 px-4 sm:px-6 text-center text-xs sm:text-sm font-semibold border-b-2 border-amber-600 text-amber-600 whitespace-nowrap transition flex items-center justify-center space-x-2";
+                    contentPengurus.classList.remove('hidden');
+                    this.renderAkunList();
+                }
+            }
+
+            updateKategoriOptions() {
+                const jenis = document.getElementById('transaksiJenis').value;
+                const katSelect = document.getElementById('transaksiKategori');
+                let options = '';
+                if (jenis === 'Pemasukan') {
+                    options = `
+                        <option value="Iuran Warga">Iuran Warga</option>
+                        <option value="Sumbangan/Donasi">Sumbangan/Donasi</option>
+                        <option value="Kas Keliling">Kas Keliling</option>
+                        <option value="Pemasukan Lainnya">Pemasukan Lainnya</option>
+                    `;
+                } else {
+                    options = `
+                        <option value="Kebersihan & Keamanan">Kebersihan & Keamanan</option>
+                        <option value="Perbaikan Infrastruktur">Perbaikan Infrastruktur</option>
+                        <option value="Sosial & Kemasyarakatan">Sosial & Kemasyarakatan</option>
+                        <option value="Pengeluaran Lainnya">Pengeluaran Lainnya</option>
+                    `;
+                }
+                katSelect.innerHTML = options;
+            }
+
+            render() {
+                const bulan = document.getElementById('filterBulan').value;
+                const tahun = document.getElementById('filterTahun').value;
+                const search = document.getElementById('searchInput').value.toLowerCase();
+                const metode = document.getElementById('filterMetode').value;
+                const kategori = document.getElementById('filterKategori').value;
+
+                let filteredTransaksi = this.transaksi.filter(t => {
+                    const [y, m, d] = t.tanggal.split('-');
+                    const matchBulan = (bulan === 'all' || m === bulan);
+                    const matchTahun = (tahun === 'all' || y === tahun);
+                    const matchSearch = (t.keterangan.toLowerCase().includes(search));
+                    const matchMetode = (metode === 'all' || t.metode === metode);
+                    const matchKategori = (kategori === 'all' || t.kategori === kategori);
+                    return matchBulan && matchTahun && matchSearch && matchMetode && matchKategori;
+                });
+
+                filteredTransaksi.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+
+                let totalSaldo = 0;
+                let totalPemasukanPeriode = 0;
+                let totalPengeluaranPeriode = 0;
+                let countMasuk = 0;
+                let countKeluar = 0;
+
+                this.transaksi.forEach(t => {
+                    const nominal = Number(t.nominal);
+                    if (t.jenis === 'Pemasukan') totalSaldo += nominal;
+                    else totalSaldo -= nominal;
+                });
+
+                filteredTransaksi.forEach(t => {
+                    const nominal = Number(t.nominal);
+                    if (t.jenis === 'Pemasukan') {
+                        totalPemasukanPeriode += nominal;
+                        countMasuk++;
+                    } else {
+                        totalPengeluaranPeriode += nominal;
+                        countKeluar++;
+                    }
+                });
+
+                document.getElementById('cardSaldo').textContent = this.formatRupiah(totalSaldo);
+                document.getElementById('cardPemasukan').textContent = this.formatRupiah(totalPemasukanPeriode);
+                document.getElementById('cardPengeluaran').textContent = this.formatRupiah(totalPengeluaranPeriode);
+                document.getElementById('countPemasukan').textContent = `${countMasuk} transaksi`;
+                document.getElementById('countPengeluaran').textContent = `${countKeluar} transaksi`;
+
+                const tbodyTransaksi = document.getElementById('tabelTransaksiBody');
+                const emptyTransaksi = document.getElementById('emptyTransaksi');
+                const thAksiTransaksi = document.getElementById('thAksiTransaksi');
+                
+                if (this.role !== 'warga') {
+                    thAksiTransaksi.classList.remove('hidden');
+                } else {
+                    thAksiTransaksi.classList.add('hidden');
+                }
+
+                if (filteredTransaksi.length === 0) {
+                    tbodyTransaksi.innerHTML = '';
+                    emptyTransaksi.classList.remove('hidden');
+                } else {
+                    emptyTransaksi.classList.add('hidden');
+                    tbodyTransaksi.innerHTML = filteredTransaksi.map(t => {
+                        const isMasuk = t.jenis === 'Pemasukan';
+                        const badgeColor = isMasuk ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200';
+                        const metodeBadge = t.metode === 'QRIS / Transfer' 
+                            ? '<span class="px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">QRIS/Transfer</span>'
+                            : '<span class="px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold bg-slate-100 text-slate-700 rounded-full border border-slate-200">Tunai</span>';
+                        
+                        const actionButtons = (this.role !== 'warga') ? `
+                            <td class="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                <div class="flex items-center justify-center space-x-1.5">
+                                    <button type="button" onclick="app.editTransaksi('${t.id}')" class="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition" title="Edit">
+                                        <i class="fa-solid fa-pen-to-square text-xs"></i>
+                                    </button>
+                                    <button type="button" onclick="app.deleteTransaksi('${t.id}')" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition" title="Hapus">
+                                        <i class="fa-solid fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        ` : '';
+
+                        return `
+                            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                                <td class="py-3 px-3 sm:px-4 font-mono text-[11px] sm:text-xs text-slate-600 whitespace-nowrap">${this.formatTanggal(t.tanggal)}</td>
+                                <td class="py-3 px-3 sm:px-4 font-medium text-slate-800">${t.keterangan}</td>
+                                <td class="py-3 px-3 sm:px-4 text-slate-600 text-[11px] sm:text-xs whitespace-nowrap">${t.kategori}</td>
+                                <td class="py-3 px-3 sm:px-4 whitespace-nowrap">${metodeBadge}</td>
+                                <td class="py-3 px-3 sm:px-4 whitespace-nowrap"><span class="px-2 py-0.5 text-[11px] font-bold rounded-full border ${badgeColor}">${t.jenis}</span></td>
+                                <td class="py-3 px-3 sm:px-4 text-right font-bold whitespace-nowrap ${isMasuk ? 'text-emerald-600' : 'text-rose-600'}">${isMasuk ? '+' : '-'} ${this.formatRupiah(t.nominal)}</td>
+                                ${actionButtons}
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                const tbodyWarga = document.getElementById('tabelWargaBody');
+                const emptyWarga = document.getElementById('emptyWarga');
+                const thAksiWarga = document.getElementById('thAksiWarga');
+
+                if (this.role !== 'warga') {
+                    thAksiWarga.classList.remove('hidden');
+                } else {
+                    thAksiWarga.classList.add('hidden');
+                }
+
+                if (this.warga.length === 0) {
+                    tbodyWarga.innerHTML = '';
+                    emptyWarga.classList.remove('hidden');
+                } else {
+                    emptyWarga.classList.add('hidden');
+                    tbodyWarga.innerHTML = this.warga.map(w => {
+                        const isLunas = w.status === 'Lunas';
+                        const statusBadge = isLunas 
+                            ? '<span class="px-2.5 py-1 text-[11px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full inline-flex items-center"><i class="fa-solid fa-check mr-1"></i> Lunas</span>'
+                            : '<span class="px-2.5 py-1 text-[11px] sm:text-xs font-bold bg-amber-100 text-amber-800 rounded-full inline-flex items-center"><i class="fa-solid fa-clock mr-1"></i> Belum Lunas</span>';
+                        
+                        const actionContent = (this.role !== 'warga') ? `
+                            <td class="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                                <div class="flex items-center justify-center space-x-1.5">
+                                    <button type="button" onclick="app.toggleStatusWarga('${w.id}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] sm:text-xs font-medium transition" title="Ubah Status">
+                                        Ubah Status
+                                    </button>
+                                    <button type="button" onclick="app.deleteWarga('${w.id}')" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition" title="Hapus Warga">
+                                        <i class="fa-solid fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        ` : '';
+
+                        return `
+                            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                                <td class="py-3 px-3 sm:px-4 font-semibold text-slate-800 whitespace-nowrap">${w.noRumah}</td>
+                                <td class="py-3 px-3 sm:px-4 text-slate-700">${w.nama}</td>
+                                <td class="py-3 px-3 sm:px-4 font-mono text-[11px] sm:text-xs text-slate-600 whitespace-nowrap">${w.telepon}</td>
+                                <td class="py-3 px-3 sm:px-4 text-center whitespace-nowrap">${statusBadge}</td>
+                                ${actionContent}
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                if (document.getElementById('tabContent-pengurus').classList.contains('hidden') === false) {
+                    this.renderAkunList();
+                }
+            }
+
+            async saveTransaksi(e) {
+                e.preventDefault();
+                if (this.role === 'warga') return;
+
+                const id = document.getElementById('transaksiId').value || 't_' + Date.now();
+                const tanggal = document.getElementById('transaksiTanggal').value;
+                const jenis = document.getElementById('transaksiJenis').value;
+                const kategori = document.getElementById('transaksiKategori').value;
+                const metode = document.getElementById('transaksiMetode').value;
+                const nominal = Number(document.getElementById('transaksiNominal').value);
+                const keterangan = document.getElementById('transaksiKeterangan').value;
+
+                const transaksiData = { id, tanggal, jenis, kategori, metode, nominal, keterangan };
+
+                if (this.db) {
+                    try {
+                        await setDoc(doc(this.db, 'transaksi', id), transaksiData);
+                    } catch (err) {
+                        console.error("Firebase save error:", err);
+                    }
+                }
+
+                const index = this.transaksi.findIndex(t => t.id === id);
+                if (index >= 0) this.transaksi[index] = transaksiData;
+                else this.transaksi.push(transaksiData);
+                this.persistLocalData();
+
+                this.closeModal('transaksiModal');
+                document.getElementById('transaksiForm').reset();
+                this.initFilterTahun();
+                this.render();
+                this.showToast('Transaksi kas berhasil disimpan!', 'success');
+            }
+
+            editTransaksi(id) {
+                const t = this.transaksi.find(item => item.id === id);
+                if (!t) return;
+                
+                document.getElementById('transaksiId').value = t.id;
+                document.getElementById('transaksiJenis').value = t.jenis;
+                this.updateKategoriOptions();
+                document.getElementById('transaksiTanggal').value = t.tanggal;
+                document.getElementById('transaksiKategori').value = t.kategori;
+                document.getElementById('transaksiMetode').value = t.metode || 'Tunai';
+                document.getElementById('transaksiNominal').value = t.nominal;
+                document.getElementById('transaksiKeterangan').value = t.keterangan;
+                document.getElementById('transaksiModalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square mr-2"></i> Edit Transaksi Kas RT`;
+                
+                this.openModal('transaksiModal');
+            }
+
+            deleteTransaksi(id) {
+                this.showCustomAlert("Hapus Transaksi", "Apakah Anda yakin ingin menghapus catatan transaksi ini?", "confirm", async () => {
+                    if (this.db) {
+                        try {
+                            await deleteDoc(doc(this.db, 'transaksi', id));
+                        } catch (err) {
+                            console.error("Firebase delete error:", err);
+                        }
+                    }
+                    this.transaksi = this.transaksi.filter(t => t.id !== id);
+                    this.persistLocalData();
+                    this.render();
+                    this.showToast('Transaksi berhasil dihapus', 'success');
+                    this.closeCustomAlert();
+                });
+            }
+
+            async saveWarga(e) {
+                e.preventDefault();
+                if (this.role === 'warga') return;
+
+                const id = document.getElementById('wargaId').value || 'w_' + Date.now();
+                const noRumah = document.getElementById('wargaNoRumah').value;
+                const nama = document.getElementById('wargaNama').value;
+                const telepon = document.getElementById('wargaTelepon').value;
+                const status = document.getElementById('wargaStatus').value;
+
+                const wargaData = { id, noRumah, nama, telepon, status };
+
+                if (this.db) {
+                    try {
+                        await setDoc(doc(this.db, 'warga', id), wargaData);
+                    } catch (err) {
+                        console.error("Firebase save warga error:", err);
+                    }
+                }
+
+                const index = this.warga.findIndex(w => w.id === id);
+                if (index >= 0) this.warga[index] = wargaData;
+                else this.warga.push(wargaData);
+                this.persistLocalData();
+
+                this.closeModal('wargaModal');
+                document.getElementById('wargaForm').reset();
+                this.render();
+                this.showToast('Data warga berhasil disimpan!', 'success');
+            }
+
+            async toggleStatusWarga(id) {
+                if (this.role === 'warga') return;
+                const w = this.warga.find(item => item.id === id);
+                if (!w) return;
+
+                w.status = w.status === 'Lunas' ? 'Belum Lunas' : 'Lunas';
+                if (this.db) {
+                    try {
+                        await setDoc(doc(this.db, 'warga', id), w);
+                    } catch (err) {
+                        console.error("Firebase update warga error:", err);
+                    }
+                }
+                this.persistLocalData();
+                this.render();
+                this.showToast(`Status iuran ${w.nama} diubah menjadi ${w.status}`, 'success');
+            }
+
+            deleteWarga(id) {
+                this.showCustomAlert("Hapus Data Warga", "Apakah Anda yakin ingin menghapus data warga ini?", "confirm", async () => {
+                    if (this.db) {
+                        try {
+                            await deleteDoc(doc(this.db, 'warga', id));
+                        } catch (err) {
+                            console.error("Firebase delete warga error:", err);
+                        }
+                    }
+                    this.warga = this.warga.filter(w => w.id !== id);
+                    this.persistLocalData();
+                    this.render();
+                    this.showToast('Data warga berhasil dihapus', 'success');
+                    this.closeCustomAlert();
+                });
+            }
+
+            openModal(modalId) {
+                if (modalId === 'transaksiModal') {
+                    document.getElementById('transaksiId').value = '';
+                    document.getElementById('transaksiForm').reset();
+                    document.getElementById('transaksiModalTitle').innerHTML = `<i class="fa-solid fa-file-invoice-dollar mr-2"></i> Catat Transaksi Kas RT`;
+                    this.initFilterTahun();
+                    this.updateKategoriOptions();
+                } else if (modalId === 'wargaModal') {
+                    document.getElementById('wargaId').value = '';
+                    document.getElementById('wargaForm').reset();
+                } else if (modalId === 'akunModal') {
+                    document.getElementById('formTambahAkun').reset();
+                }
+                document.getElementById(modalId).classList.remove('hidden');
+                document.getElementById(modalId).classList.add('flex');
+            }
+
+            closeModal(modalId) {
+                document.getElementById(modalId).classList.add('hidden');
+                document.getElementById(modalId).classList.remove('flex');
+            }
+
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toastMessage');
+                const toastIcon = document.getElementById('toastIcon');
+
+                toastMessage.textContent = message;
+                if (type === 'success') {
+                    toastIcon.className = "fa-solid fa-circle-check text-emerald-400";
+                } else {
+                    toastIcon.className = "fa-solid fa-circle-exclamation text-rose-400";
+                }
+
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 3000);
+            }
+
+            showCustomAlert(title, message, type = 'confirm', onConfirm = null) {
+                const modal = document.getElementById('customAlertModal');
+                document.getElementById('alertTitle').textContent = title;
+                document.getElementById('alertMessage').textContent = message;
+                const confirmBtn = document.getElementById('alertConfirmBtn');
+                const cancelBtn = document.getElementById('alertCancelBtn');
+                const iconContainer = document.getElementById('alertIconContainer');
+                const alertIcon = document.getElementById('alertIcon');
+
+                if (type === 'confirm') {
+                    cancelBtn.classList.remove('hidden');
+                    confirmBtn.textContent = "Ya, Lanjutkan";
+                    iconContainer.className = "w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl";
+                    alertIcon.className = "fa-solid fa-triangle-exclamation";
+                    confirmBtn.onclick = () => {
+                        if (onConfirm) onConfirm();
+                    };
+                } else {
+                    cancelBtn.classList.add('hidden');
+                    confirmBtn.textContent = "Mengerti";
+                    iconContainer.className = "w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mx-auto text-xl";
+                    alertIcon.className = "fa-solid fa-circle-info";
+                    confirmBtn.onclick = () => this.closeCustomAlert();
+                }
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            closeCustomAlert() {
+                const modal = document.getElementById('customAlertModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            formatRupiah(number) {
+                return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+            }
+
+            formatTanggal(tanggalStr) {
+                if (!tanggalStr) return '';
+                const parts = tanggalStr.split('-');
+                if (parts.length !== 3) return tanggalStr;
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+                return `${parts[2]} ${months[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
+            }
+        }
+
+        window.app = new KasRTApp();
+    </script>
+</body>
+</html>
