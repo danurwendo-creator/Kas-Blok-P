@@ -46,3 +46,6 @@ Setelah deploy, buka URL Vercel dari smartphone dan pilih **Add to Home Screen**
 ## 6. Catatan keamanan
 
 Firestore Rules membolehkan read publik untuk transparansi, tetapi create/update/delete hanya untuk akun yang memiliki email Authentication. Untuk produksi, review rules sebelum go-live.
+
+
+V8 - Export Excel: tombol Export Excel pada tab Daftar Transaksi mengekspor data sesuai filter aktif, dengan sheet Ringkasan dan Rekapitulasi. Field Warga Terkait menyimpan nama warga/no. rumah pada transaksi baru.

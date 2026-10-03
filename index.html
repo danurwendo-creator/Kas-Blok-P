@@ -16,6 +16,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS: export rekap kas ke Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -278,6 +280,9 @@
                             <option value="Sosial & Kemasyarakatan">Sosial & Kemasyarakatan</option>
                             <option value="Pengeluaran Lainnya">Pengeluaran Lainnya</option>
                         </select>
+                        <button type="button" onclick="app.exportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 whitespace-nowrap shadow-sm" title="Export data yang sedang difilter ke Excel">
+                            <i class="fa-solid fa-file-excel"></i><span>Export Excel</span>
+                        </button>
                     </div>
                 </div>
 
@@ -398,6 +403,14 @@
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 font-medium text-xs sm:text-sm">Rp</span>
                         <input type="number" id="transaksiNominal" placeholder="Contoh: 50000" min="1" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2.5" required>
                     </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Warga Terkait <span class="font-normal normal-case text-slate-400">(opsional)</span></label>
+                    <select id="transaksiWargaId" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5">
+                        <option value="">— Tidak terkait warga —</option>
+                    </select>
+                    <p class="text-[10px] text-slate-400 mt-1">Untuk iuran warga, pilih nama warga agar rekap Excel otomatis mencatat nama dan nomor rumah.</p>
                 </div>
 
                 <div>
@@ -964,7 +977,9 @@
                     const [y, m, d] = t.tanggal.split('-');
                     const matchBulan = (bulan === 'all' || m === bulan);
                     const matchTahun = (tahun === 'all' || y === tahun);
-                    const matchSearch = (t.keterangan.toLowerCase().includes(search));
+                    const warga = this.getWargaForTransaction(t);
+                    const searchable = [t.keterangan, t.namaWarga, t.noRumah, warga?.nama, warga?.noRumah].filter(Boolean).join(' ').toLowerCase();
+                    const matchSearch = searchable.includes(search);
                     const matchMetode = (metode === 'all' || t.metode === metode);
                     const matchKategori = (kategori === 'all' || t.kategori === kategori);
                     return matchBulan && matchTahun && matchSearch && matchMetode && matchKategori;
@@ -1109,8 +1124,15 @@
                 const metode = document.getElementById('transaksiMetode').value;
                 const nominal = Number(document.getElementById('transaksiNominal').value);
                 const keterangan = document.getElementById('transaksiKeterangan').value;
+                const wargaId = document.getElementById('transaksiWargaId')?.value || '';
+                const wargaTerpilih = this.warga.find(w => w.id === wargaId);
 
-                const transaksiData = { id, tanggal, jenis, kategori, metode, nominal, keterangan };
+                const transaksiData = {
+                    id, tanggal, jenis, kategori, metode, nominal, keterangan,
+                    wargaId: wargaTerpilih ? wargaTerpilih.id : '',
+                    namaWarga: wargaTerpilih ? wargaTerpilih.nama : '',
+                    noRumah: wargaTerpilih ? wargaTerpilih.noRumah : ''
+                };
 
                 if (this.db) {
                     try {
@@ -1132,11 +1154,150 @@
                 this.showToast('Transaksi kas berhasil disimpan!', 'success');
             }
 
+            updateWargaOptions(selectedId = '') {
+                const select = document.getElementById('transaksiWargaId');
+                if (!select) return;
+                const current = selectedId || select.value || '';
+                const options = ['<option value="">— Tidak terkait warga —</option>'];
+                const sorted = [...this.warga].sort((a, b) => String(a.noRumah || '').localeCompare(String(b.noRumah || '')));
+                sorted.forEach(w => {
+                    const label = `${w.noRumah || '-'} — ${w.nama || '-'}`;
+                    options.push(`<option value="${String(w.id).replace(/"/g, '&quot;')}">${label}</option>`);
+                });
+                select.innerHTML = options.join('');
+                select.value = current;
+                if (select.value !== current) select.value = '';
+            }
+
+            getWargaForTransaction(t) {
+                if (!t) return null;
+                if (t.wargaId) {
+                    const byId = this.warga.find(w => w.id === t.wargaId);
+                    if (byId) return byId;
+                }
+                if (t.namaWarga) {
+                    const target = String(t.namaWarga).trim().toLowerCase();
+                    const byName = this.warga.find(w => String(w.nama || '').trim().toLowerCase() === target);
+                    if (byName) return byName;
+                }
+                const text = String(t.keterangan || '').toLowerCase();
+                return this.warga.find(w => {
+                    const nama = String(w.nama || '').toLowerCase();
+                    const rumah = String(w.noRumah || '').toLowerCase();
+                    return (rumah && text.includes(rumah)) || (nama && text.includes(nama));
+                }) || null;
+            }
+
+            async exportExcel() {
+                try {
+                    if (typeof XLSX === 'undefined') {
+                        this.showToast('Modul Excel belum tersedia. Periksa koneksi internet.', 'error');
+                        return;
+                    }
+
+                    const bulan = document.getElementById('filterBulan')?.value || 'all';
+                    const tahun = document.getElementById('filterTahun')?.value || 'all';
+                    const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+                    const metode = document.getElementById('filterMetode')?.value || 'all';
+                    const kategori = document.getElementById('filterKategori')?.value || 'all';
+
+                    const filtered = this.transaksi.filter(t => {
+                        const [y, m] = String(t.tanggal || '').split('-');
+                        const warga = this.getWargaForTransaction(t);
+                        const searchable = [t.keterangan, t.namaWarga, t.noRumah, warga?.nama, warga?.noRumah].filter(Boolean).join(' ').toLowerCase();
+                        return (bulan === 'all' || m === bulan) &&
+                               (tahun === 'all' || y === tahun) &&
+                               searchable.includes(search) &&
+                               (metode === 'all' || t.metode === metode) &&
+                               (kategori === 'all' || t.kategori === kategori);
+                    }).sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+
+                    const rows = filtered.map((t, index) => {
+                        const warga = this.getWargaForTransaction(t);
+                        const isMasuk = t.jenis === 'Pemasukan';
+                        return {
+                            'No': index + 1,
+                            'Tanggal': t.tanggal || '',
+                            'Nama Warga': t.namaWarga || warga?.nama || '',
+                            'No. Rumah': t.noRumah || warga?.noRumah || '',
+                            'Keterangan': t.keterangan || '',
+                            'Kategori': t.kategori || '',
+                            'Metode Pembayaran': t.metode || '',
+                            'Jenis': t.jenis || '',
+                            'Pemasukan (Rp)': isMasuk ? Number(t.nominal || 0) : 0,
+                            'Pengeluaran (Rp)': !isMasuk ? Number(t.nominal || 0) : 0
+                        };
+                    });
+
+                    const totalPemasukan = rows.reduce((sum, r) => sum + r['Pemasukan (Rp)'], 0);
+                    const totalPengeluaran = rows.reduce((sum, r) => sum + r['Pengeluaran (Rp)'], 0);
+                    const saldoBersih = totalPemasukan - totalPengeluaran;
+
+                    const wsData = [
+                        ['REKAPITULASI KAS WARGA'],
+                        ['Blok P RT. 011 / RW. 013 Grand Riscon Rancaekek'],
+                        ['Periode', this.getExportPeriodLabel(bulan, tahun)],
+                        [],
+                        ...rows
+                    ];
+                    const ws = XLSX.utils.json_to_sheet(rows);
+                    ws['!cols'] = [
+                        {wch:6},{wch:13},{wch:26},{wch:18},{wch:36},{wch:28},{wch:22},{wch:16},{wch:18},{wch:20}
+                    ];
+
+                    const summaryRows = [
+                        ['REKAPITULASI KAS WARGA'],
+                        ['Blok P RT. 011 / RW. 013 Grand Riscon Rancaekek'],
+                        ['Periode', this.getExportPeriodLabel(bulan, tahun)],
+                        [],
+                        ['Indikator', 'Nilai'],
+                        ['Jumlah Transaksi', rows.length],
+                        ['Total Pemasukan (Rp)', totalPemasukan],
+                        ['Total Pengeluaran (Rp)', totalPengeluaran],
+                        ['Saldo Bersih Periode (Rp)', saldoBersih],
+                        [],
+                        ['Kategori', 'Pemasukan (Rp)', 'Pengeluaran (Rp)']
+                    ];
+                    const kategoriMap = {};
+                    rows.forEach(r => {
+                        if (!kategoriMap[r['Kategori']]) kategoriMap[r['Kategori']] = [0,0];
+                        kategoriMap[r['Kategori']][0] += r['Pemasukan (Rp)'];
+                        kategoriMap[r['Kategori']][1] += r['Pengeluaran (Rp)'];
+                    });
+                    Object.entries(kategoriMap).forEach(([kat, vals]) => summaryRows.push([kat, vals[0], vals[1]]));
+                    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+                    wsSummary['!cols'] = [{wch:30},{wch:22},{wch:22}];
+
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan');
+                    XLSX.utils.book_append_sheet(wb, ws, 'Rekapitulasi');
+
+                    const dateStamp = new Date().toISOString().slice(0,10);
+                    XLSX.writeFile(wb, `Rekap_Kas_RT011_${dateStamp}.xlsx`);
+                    this.showToast(`Excel berhasil dibuat (${rows.length} transaksi).`, 'success');
+                } catch (err) {
+                    console.error('Export Excel error:', err);
+                    this.showToast('Export Excel gagal. Silakan coba lagi.', 'error');
+                }
+            }
+
+            getExportPeriodLabel(bulan, tahun) {
+                const bulanNama = {
+                    '01':'Januari','02':'Februari','03':'Maret','04':'April','05':'Mei','06':'Juni',
+                    '07':'Juli','08':'Agustus','09':'September','10':'Oktober','11':'November','12':'Desember'
+                };
+                if (tahun === 'all' && bulan === 'all') return 'Semua periode';
+                if (bulan === 'all') return `Semua bulan tahun ${tahun}`;
+                if (tahun === 'all') return `Bulan ${bulanNama[bulan]}`;
+                return `${bulanNama[bulan]} ${tahun}`;
+            }
+
             editTransaksi(id) {
                 const t = this.transaksi.find(item => item.id === id);
                 if (!t) return;
                 
                 document.getElementById('transaksiId').value = t.id;
+                this.updateWargaOptions(t.wargaId || this.getWargaForTransaction(t)?.id || '');
                 document.getElementById('transaksiJenis').value = t.jenis;
                 this.updateKategoriOptions();
                 document.getElementById('transaksiTanggal').value = t.tanggal;
@@ -1239,6 +1400,7 @@
                     document.getElementById('transaksiModalTitle').innerHTML = `<i class="fa-solid fa-file-invoice-dollar mr-2"></i> Catat Transaksi Kas RT`;
                     this.initFilterTahun();
                     this.updateKategoriOptions();
+                    this.updateWargaOptions();
                 } else if (modalId === 'wargaModal') {
                     document.getElementById('wargaId').value = '';
                     document.getElementById('wargaForm').reset();
