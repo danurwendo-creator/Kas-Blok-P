@@ -517,6 +517,23 @@
             </form>
         </div>
     </div>
+    <!-- Custom Alert / Delete Confirmation -->
+    <div id="customAlertModal" class="fixed inset-0 z-[100] bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200">
+            <div class="p-5 sm:p-6 text-center">
+                <div id="alertIconContainer" class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl">
+                    <i id="alertIcon" class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 id="alertTitle" class="font-bold text-slate-800 text-base sm:text-lg mt-4">Konfirmasi</h3>
+                <p id="alertMessage" class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed whitespace-pre-line">Apakah Anda yakin?</p>
+                <div class="flex items-center justify-center gap-3 mt-6">
+                    <button id="alertCancelBtn" type="button" onclick="app.closeCustomAlert()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition">Batal</button>
+                    <button id="alertConfirmBtn" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl text-xs sm:text-sm transition">Ya, Lanjutkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 py-5 text-center text-[11px] sm:text-xs text-slate-500 mt-auto px-4">
         <p>&copy; 2026 Kas Warga Blok P RT. 011 / RW. 013 Grand Riscon Rancaekek. Transparansi Keuangan Warga.</p>
@@ -524,7 +541,7 @@
 
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=13').catch(() => {}));
         }
     </script>
 
@@ -1375,11 +1392,12 @@
                         console.error('Firebase delete transaksi error:', err);
                         this.closeCustomAlert();
                         const code = err?.code || err?.message || 'unknown';
+                        const detail = err?.message ? `\n\nDetail: ${err.message}` : '';
                         let msg = 'Gagal menghapus transaksi.';
-                        if (code === 'permission-denied') msg = 'Penghapusan ditolak Firestore. Pastikan akun ini ada di koleksi pengurus dan Rules sudah dipublikasikan.';
+                        if (code === 'permission-denied') msg = 'Penghapusan ditolak Firestore. Pastikan UID akun ada di koleksi pengurus dan Firestore Rules sudah dipublikasikan.';
                         else if (code === 'AUTH_REQUIRED') msg = 'Sesi Pengurus belum aktif. Silakan logout lalu login kembali sebagai Pengurus.';
                         else if (code === 'NOT_PENGURUS') msg = 'Akun login belum terdaftar di koleksi pengurus.';
-                        this.showCustomAlert('Penghapusan Gagal', msg, 'alert');
+                        this.showCustomAlert('Penghapusan Gagal', msg + detail, 'alert');
                     } finally {
                         if (confirmBtn) {
                             confirmBtn.disabled = false;
@@ -1448,11 +1466,12 @@
                         console.error('Firebase delete warga error:', err);
                         this.closeCustomAlert();
                         const code = err?.code || err?.message || 'unknown';
+                        const detail = err?.message ? `\n\nDetail: ${err.message}` : '';
                         let msg = 'Gagal menghapus data warga.';
-                        if (code === 'permission-denied') msg = 'Penghapusan ditolak Firestore. Pastikan akun ini ada di koleksi pengurus dan Rules sudah dipublikasikan.';
+                        if (code === 'permission-denied') msg = 'Penghapusan ditolak Firestore. Pastikan UID akun ada di koleksi pengurus dan Firestore Rules sudah dipublikasikan.';
                         else if (code === 'AUTH_REQUIRED') msg = 'Sesi Pengurus belum aktif. Silakan logout lalu login kembali sebagai Pengurus.';
                         else if (code === 'NOT_PENGURUS') msg = 'Akun login belum terdaftar di koleksi pengurus.';
-                        this.showCustomAlert('Penghapusan Gagal', msg, 'alert');
+                        this.showCustomAlert('Penghapusan Gagal', msg + detail, 'alert');
                     } finally {
                         if (confirmBtn) {
                             confirmBtn.disabled = false;
@@ -1508,12 +1527,26 @@
 
             showCustomAlert(title, message, type = 'confirm', onConfirm = null) {
                 const modal = document.getElementById('customAlertModal');
-                document.getElementById('alertTitle').textContent = title;
-                document.getElementById('alertMessage').textContent = message;
+                const titleEl = document.getElementById('alertTitle');
+                const messageEl = document.getElementById('alertMessage');
                 const confirmBtn = document.getElementById('alertConfirmBtn');
                 const cancelBtn = document.getElementById('alertCancelBtn');
                 const iconContainer = document.getElementById('alertIconContainer');
                 const alertIcon = document.getElementById('alertIcon');
+                if (!modal || !titleEl || !messageEl || !confirmBtn || !cancelBtn || !iconContainer || !alertIcon) {
+                    console.error('Custom alert elements tidak ditemukan. Menggunakan confirm() fallback.', { title, message, type });
+                    if (type === 'confirm') {
+                        if (window.confirm(`${title}\n\n${message}`) && onConfirm) onConfirm();
+                    } else {
+                        window.alert(`${title}\n\n${message}`);
+                    }
+                    return;
+                }
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                confirmBtn.disabled = false;
+                confirmBtn.onclick = null;
+                cancelBtn.onclick = () => this.closeCustomAlert();
 
                 if (type === 'confirm') {
                     cancelBtn.classList.remove('hidden');
@@ -1537,6 +1570,7 @@
 
             closeCustomAlert() {
                 const modal = document.getElementById('customAlertModal');
+                if (!modal) return;
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
             }
