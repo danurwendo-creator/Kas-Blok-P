@@ -5,29 +5,28 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Pengurus/admin harus terdaftar sebagai dokumen pengurus dengan ID = UID Firebase.
     function isPengurus() {
       return signedIn() &&
         exists(/databases/$(database)/documents/pengurus/$(request.auth.uid));
     }
 
-    // Data transparansi dapat dibaca oleh pengguna yang sudah terautentikasi melalui Phone Authentication.
-    // Perubahan data hanya boleh dilakukan oleh UID pengurus yang terdaftar.
+    // Dashboard warga bersifat transparan dan dapat dibaca tanpa login.
     match /transaksi/{id} {
-      allow read: if signedIn();
+      allow read: if true;
       allow create, update, delete: if isPengurus();
     }
 
     match /warga/{id} {
-      allow read: if signedIn();
+      allow read: if true;
       allow create, update, delete: if isPengurus();
     }
 
-    // Profil pengurus tidak boleh dibuka publik. Pengurus dapat membaca profilnya
-    // dan profil pengurus lain setelah terautentikasi; perubahan hanya oleh pengurus.
+    // Profil pengurus hanya dapat dibaca oleh akun yang sudah terautentikasi.
+    // Perubahan profil hanya boleh dilakukan oleh pengurus yang sudah terdaftar.
     match /pengurus/{uid} {
-      allow read: if signedIn();
-      allow create, update, delete: if isPengurus();
+      allow read: if signedIn() && (request.auth.uid == uid || isPengurus());
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update, delete: if isPengurus();
     }
 
     match /{document=**} {
