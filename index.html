@@ -620,6 +620,7 @@
                             this.pengurusName = profile.nama || user.email || 'Pengurus RT';
                             localStorage.setItem('rt_user_role', 'pengurus');
                             localStorage.setItem('rt_pengurus_name', this.pengurusName);
+                            await this.removeLegacyDemoData();
                             if (!document.getElementById('loginPage').classList.contains('hidden')) this.openDashboard();
                         } catch (err) {
                             console.error('Auth profile error:', err);
@@ -641,8 +642,7 @@
                     snapshot.forEach(docSnap => {
                         this.transaksi.push({ id: docSnap.id, ...docSnap.data() });
                     });
-                    if (this.transaksi.length === 0 && this.role === 'pengurus') this.seedInitialData();
-                    else this.render();
+                    this.render();
                 }, (err) => console.error("Sync error transaksi:", err));
 
                 // Sync Warga
@@ -652,32 +652,35 @@
                     snapshot.forEach(docSnap => {
                         this.warga.push({ id: docSnap.id, ...docSnap.data() });
                     });
-                    if (this.warga.length === 0 && this.role === 'pengurus') this.seedInitialWarga();
-                    else this.render();
+                    this.render();
                 }, (err) => console.error("Sync error warga:", err));
 
 
             }
 
-            async seedInitialData() {
-                const defaultTransaksi = [
-                    { id: 't1', tanggal: '2026-06-01', jenis: 'Pemasukan', kategori: 'Iuran Warga', metode: 'QRIS / Transfer', nominal: 50000, keterangan: 'Iuran Bulanan Blok P1 No. 12' },
-                    { id: 't2', tanggal: '2026-06-02', jenis: 'Pemasukan', kategori: 'Iuran Warga', metode: 'Tunai', nominal: 50000, keterangan: 'Iuran Bulanan Blok P2 No. 05' },
-                    { id: 't3', tanggal: '2026-06-05', jenis: 'Pengeluaran', kategori: 'Kebersihan & Keamanan', metode: 'Tunai', nominal: 150000, keterangan: 'Honor Petugas Kebersihan Blok P' }
-                ];
-                for (let t of defaultTransaksi) {
-                    await setDoc(doc(this.db, 'transaksi', t.id), t);
-                }
-            }
+            async removeLegacyDemoData() {
+                // Hapus sekali saja data dummy yang pernah dibuat oleh versi lama aplikasi.
+                // Hanya ID demo yang dikenal yang disentuh; data lain tidak diubah.
+                if (!this.db || !this.auth?.currentUser) return;
+                if (localStorage.getItem('kas_rt_demo_cleanup_v1') === 'done') return;
 
-            async seedInitialWarga() {
-                const defaultWarga = [
-                    { id: 'w1', noRumah: 'Blok P1 / 12', nama: 'Bpk. Ahmad Fauzi', telepon: '081234567890', status: 'Lunas' },
-                    { id: 'w2', noRumah: 'Blok P2 / 05', nama: 'Ibu Siti Aminah', telepon: '085678901234', status: 'Lunas' },
-                    { id: 'w3', noRumah: 'Blok P3 / 18', nama: 'Bpk. Hendra Gunawan', telepon: '081122334455', status: 'Belum Lunas' }
-                ];
-                for (let w of defaultWarga) {
-                    await setDoc(doc(this.db, 'warga', w.id), w);
+                const demoTransaksiIds = ['t1', 't2', 't3'];
+                const demoWargaIds = ['w1', 'w2', 'w3'];
+                try {
+                    const profileSnap = await getDoc(doc(this.db, 'pengurus', this.auth.currentUser.uid));
+                    if (!profileSnap.exists()) return;
+                    for (const id of demoTransaksiIds) {
+                        await deleteDoc(doc(this.db, 'transaksi', id));
+                    }
+                    for (const id of demoWargaIds) {
+                        await deleteDoc(doc(this.db, 'warga', id));
+                    }
+                    localStorage.removeItem('kas_rt_transaksi');
+                    localStorage.removeItem('kas_rt_warga');
+                    localStorage.setItem('kas_rt_demo_cleanup_v1', 'done');
+                } catch (err) {
+                    console.warn('Legacy demo cleanup belum berhasil:', err);
+                    // Jangan menandai selesai agar dapat dicoba lagi setelah Rules diperbaiki.
                 }
             }
 
@@ -694,30 +697,13 @@
             }
 
             loadDummyData() {
-                const savedTransaksi = localStorage.getItem('kas_rt_transaksi');
-                const savedWarga = localStorage.getItem('kas_rt_warga');
-                const savedPengurus = localStorage.getItem('kas_rt_pengurus');
-                this.transaksi = savedTransaksi ? JSON.parse(savedTransaksi) : [
-                    { id: 't1', tanggal: '2026-06-01', jenis: 'Pemasukan', kategori: 'Iuran Warga', metode: 'QRIS / Transfer', nominal: 50000, keterangan: 'Iuran Bulanan Blok P1 No. 12' },
-                    { id: 't2', tanggal: '2026-06-02', jenis: 'Pemasukan', kategori: 'Iuran Warga', metode: 'Tunai', nominal: 50000, keterangan: 'Iuran Bulanan Blok P2 No. 05' },
-                    { id: 't3', tanggal: '2026-06-05', jenis: 'Pengeluaran', kategori: 'Kebersihan & Keamanan', metode: 'Tunai', nominal: 150000, keterangan: 'Honor Petugas Kebersihan Blok P' }
-                ];
-                if (savedTransaksi) this.transaksi = JSON.parse(savedTransaksi);
-                this.warga = savedWarga ? JSON.parse(savedWarga) : [
-                    { id: 'w1', noRumah: 'Blok P1 / 12', nama: 'Bpk. Ahmad Fauzi', telepon: '081234567890', status: 'Lunas' },
-                    { id: 'w2', noRumah: 'Blok P2 / 05', nama: 'Ibu Siti Aminah', telepon: '085678901234', status: 'Lunas' },
-                    { id: 'w3', noRumah: 'Blok P3 / 18', nama: 'Bpk. Hendra Gunawan', telepon: '081122334455', status: 'Belum Lunas' }
-                ];
-                if (savedWarga) this.warga = JSON.parse(savedWarga);
-                this.pengurusList = savedPengurus ? JSON.parse(savedPengurus) : [];
-                if (savedPengurus) this.pengurusList = JSON.parse(savedPengurus);
+                // Tidak lagi menggunakan data contoh/dummy. Jika Firebase tidak tersedia,
+                // dashboard tetap kosong agar tidak pernah menampilkan data palsu.
+                this.transaksi = [];
+                this.warga = [];
+                this.pengurusList = [];
                 this.render();
-
-                if (this.role) {
-                    this.openDashboard();
-                } else {
-                    this.showLoginGate();
-                }
+                this.showLoginGate();
             }
 
             populateAkunDropdown() {
@@ -1376,19 +1362,24 @@
                         confirmBtn.textContent = 'Menghapus...';
                     }
                     try {
-                        if (!this.db) {
-                            throw new Error('Firestore belum terhubung.');
-                        }
+                        const user = this.auth?.currentUser;
+                        if (!this.db || !user) throw new Error('AUTH_REQUIRED');
+                        const profileSnap = await getDoc(doc(this.db, 'pengurus', user.uid));
+                        if (!profileSnap.exists()) throw new Error('NOT_PENGURUS');
                         await deleteDoc(doc(this.db, 'transaksi', id));
                         this.transaksi = this.transaksi.filter(t => t.id !== id);
-                        this.persistLocalData();
-                        this.render();
                         this.closeCustomAlert();
+                        this.render();
                         this.showToast('Transaksi berhasil dihapus', 'success');
                     } catch (err) {
                         console.error('Firebase delete transaksi error:', err);
                         this.closeCustomAlert();
-                        this.showToast('Gagal menghapus transaksi. Pastikan akun Pengurus dan Firestore Rules sudah benar.', 'error');
+                        const code = err?.code || err?.message || 'unknown';
+                        let msg = 'Gagal menghapus transaksi.';
+                        if (code === 'permission-denied') msg = 'Penghapusan ditolak Firestore. Pastikan akun ini ada di koleksi pengurus dan Rules sudah dipublikasikan.';
+                        else if (code === 'AUTH_REQUIRED') msg = 'Sesi Pengurus belum aktif. Silakan logout lalu login kembali sebagai Pengurus.';
+                        else if (code === 'NOT_PENGURUS') msg = 'Akun login belum terdaftar di koleksi pengurus.';
+                        this.showCustomAlert('Penghapusan Gagal', msg, 'alert');
                     } finally {
                         if (confirmBtn) {
                             confirmBtn.disabled = false;
@@ -1402,6 +1393,12 @@
                 e.preventDefault();
                 if (this.role === 'warga') return;
 
+                const user = this.auth?.currentUser;
+                if (!this.db || !user) {
+                    this.showCustomAlert('Tidak dapat menyimpan', 'Sesi Pengurus belum aktif. Silakan login kembali.', 'alert');
+                    return;
+                }
+
                 const id = document.getElementById('wargaId').value || 'w_' + Date.now();
                 const noRumah = document.getElementById('wargaNoRumah').value;
                 const nama = document.getElementById('wargaNama').value.trim();
@@ -1409,23 +1406,23 @@
                 const alamat = noRumah;
                 const wargaData = { id, noRumah, alamat, nama, telepon };
 
-                if (this.db) {
-                    try {
-                        await setDoc(doc(this.db, 'warga', id), wargaData);
-                    } catch (err) {
-                        console.error("Firebase save warga error:", err);
-                    }
+                try {
+                    const profileSnap = await getDoc(doc(this.db, 'pengurus', user.uid));
+                    if (!profileSnap.exists()) throw new Error('NOT_PENGURUS');
+                    await setDoc(doc(this.db, 'warga', id), wargaData);
+                    const index = this.warga.findIndex(w => w.id === id);
+                    if (index >= 0) this.warga[index] = wargaData;
+                    else this.warga.push(wargaData);
+                    this.closeModal('wargaModal');
+                    document.getElementById('wargaForm').reset();
+                    this.render();
+                    this.showToast('Data warga berhasil disimpan!', 'success');
+                } catch (err) {
+                    console.error('Firebase save warga error:', err);
+                    this.showCustomAlert('Gagal menyimpan', err?.code === 'permission-denied'
+                        ? 'Firestore menolak perubahan. Pastikan akun Pengurus dan Firestore Rules sudah benar.'
+                        : 'Sesi Pengurus belum valid atau Firebase belum siap.', 'alert');
                 }
-
-                const index = this.warga.findIndex(w => w.id === id);
-                if (index >= 0) this.warga[index] = wargaData;
-                else this.warga.push(wargaData);
-                this.persistLocalData();
-
-                this.closeModal('wargaModal');
-                document.getElementById('wargaForm').reset();
-                this.render();
-                this.showToast('Data warga berhasil disimpan!', 'success');
             }
 
 
@@ -1438,19 +1435,24 @@
                         confirmBtn.textContent = 'Menghapus...';
                     }
                     try {
-                        if (!this.db) {
-                            throw new Error('Firestore belum terhubung.');
-                        }
+                        const user = this.auth?.currentUser;
+                        if (!this.db || !user) throw new Error('AUTH_REQUIRED');
+                        const profileSnap = await getDoc(doc(this.db, 'pengurus', user.uid));
+                        if (!profileSnap.exists()) throw new Error('NOT_PENGURUS');
                         await deleteDoc(doc(this.db, 'warga', id));
                         this.warga = this.warga.filter(w => w.id !== id);
-                        this.persistLocalData();
-                        this.render();
                         this.closeCustomAlert();
+                        this.render();
                         this.showToast('Data warga berhasil dihapus', 'success');
                     } catch (err) {
                         console.error('Firebase delete warga error:', err);
                         this.closeCustomAlert();
-                        this.showToast('Gagal menghapus data warga. Pastikan akun Pengurus dan Firestore Rules sudah benar.', 'error');
+                        const code = err?.code || err?.message || 'unknown';
+                        let msg = 'Gagal menghapus data warga.';
+                        if (code === 'permission-denied') msg = 'Penghapusan ditolak Firestore. Pastikan akun ini ada di koleksi pengurus dan Rules sudah dipublikasikan.';
+                        else if (code === 'AUTH_REQUIRED') msg = 'Sesi Pengurus belum aktif. Silakan logout lalu login kembali sebagai Pengurus.';
+                        else if (code === 'NOT_PENGURUS') msg = 'Akun login belum terdaftar di koleksi pengurus.';
+                        this.showCustomAlert('Penghapusan Gagal', msg, 'alert');
                     } finally {
                         if (confirmBtn) {
                             confirmBtn.disabled = false;
